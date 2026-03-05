@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<title>Happy Women's Day 🌸</title>
+	<link
+		href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Quicksand:wght@400;500&display=swap"
+		rel="stylesheet">
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		html,
+		body {
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+			background: #000;
+			font-family: 'Quicksand', sans-serif;
+			touch-action: none;
+		}
+
+		canvas {
+			display: block;
+			position: fixed;
+			top: 0;
+			left: 0;
+			z-index: 0;
+		}
+
+		#ytPlayer {
+			position: fixed;
+			width: 1px;
+			height: 1px;
+			opacity: 0;
+			pointer-events: none;
+			top: -9999px;
+		}
+
+		.screen {
+			position: fixed;
+			inset: 0;
+			z-index: 20;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			opacity: 0;
+			pointer-events: none;
+			transition: opacity 1s ease;
+		}
+
+		.screen.active {
+			opacity: 1;
+			pointer-events: all;
+		}
+
+		/* ── LOADING SCREEN ── */
+		#phaseLoading {
+			background: transparent;
+		}
+
+		.loadDots {
+			display: flex;
+			gap: 10px;
+			margin-top: 18px;
+		}
+
+		.loadDot {
+			width: 8px;
+			height: 8px;
+			border-radius: 50%;
+			background: rgba(255, 130, 190, .7);
+			animation: dotBounce 1.2s ease-in-out infinite;
+		}
+
+		.loadDot:nth-child(2) {
+			animation-delay: .2s;
+		}
+
+		.loadDot:nth-child(3) {
+			animation-delay: .4s;
+		}
+
+		@keyframes dotBounce {
+
+			0%,
+			100% {
+				transform: translateY(0);
+				opacity: .4;
+			}
+
+			50% {
+				transform: translateY(-8px);
+				opacity: 1;
+			}
+		}
+
+		.loadText {
+			color: rgba(225, 120, 136, 0.7);
+			font-weight: bold;
+			font-size: 13px;
+			letter-spacing: 4px;
+			text-transform: uppercase;
+			text-shadow: 0 0 10px rgba(255, 100, 180, .5);
+		}
+
+		/* ── HOLD SCREEN ── */
+		#phaseHold {
+			justify-content: flex-end;
+			padding-bottom: 90px;
+		}
+
+		#holdWrap {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 28px;
+		}
+
+		/* gap 28px thay vì 16 */
+		#holdHint {
+			color: rgba(255, 182, 193, .85);
+			font-size: 13px;
+			letter-spacing: 3px;
+			text-transform: uppercase;
+			text-shadow: 0 0 12px rgba(255, 100, 180, .6);
+			animation: pulse 2s ease-in-out infinite;
+		}
+
+		@keyframes pulse {
+
+			0%,
+			100% {
+				opacity: .5;
+			}
+
+			50% {
+				opacity: 1;
+			}
+		}
+
+		#holdBtn {
+			position: relative;
+			width: 80px;
+			height: 80px;
+			cursor: pointer;
+			user-select: none;
+			-webkit-user-select: none;
+		}
+
+		.ring {
+			position: absolute;
+			inset: 0;
+			border-radius: 50%;
+			border: 1.5px solid rgba(255, 130, 190, .35);
+			animation: ringPulse 2.5s ease-in-out infinite;
+		}
+
+		.ring:nth-child(2) {
+			animation-delay: .6s;
+			transform: scale(1.28);
+		}
+
+		.ring:nth-child(3) {
+			animation-delay: 1.2s;
+			transform: scale(1.58);
+		}
+
+		@keyframes ringPulse {
+
+			0%,
+			100% {
+				opacity: .2;
+			}
+
+			50% {
+				opacity: .75;
+			}
+		}
+
+		.dot {
+			position: absolute;
+			inset: 8px;
+			border-radius: 50%;
+			background: radial-gradient(circle at 40% 35%, #ff9ec4, #d9006e 60%, #8b0038);
+			box-shadow: 0 0 18px 6px rgba(255, 80, 160, .55), 0 0 40px 12px rgba(200, 0, 120, .25);
+			transition: transform .15s, box-shadow .15s;
+		}
+
+		#holdBtn.pressing .dot {
+			transform: scale(.88);
+			box-shadow: 0 0 28px 12px rgba(255, 80, 160, .85), 0 0 60px 20px rgba(200, 0, 120, .45);
+		}
+
+		#progressRing {
+			position: absolute;
+			inset: -4px;
+			width: calc(100%+8px);
+			height: calc(100%+8px);
+			transform: rotate(-90deg);
+			pointer-events: none;
+		}
+
+		#progressCircle {
+			fill: none;
+			stroke: url(#grad);
+			stroke-width: 2.5;
+			stroke-linecap: round;
+			stroke-dasharray: 263;
+			stroke-dashoffset: 263;
+			transition: stroke-dashoffset .05s linear;
+			filter: drop-shadow(0 0 4px rgba(255, 100, 180, 1));
+		}
+
+		/* ── PARTICLE TEXT ── */
+		#phaseText {
+			background: transparent;
+			pointer-events: none;
+		}
+
+		/* ── CONTINUE BTN — dưới quả cầu, không dính ── */
+		#btnContinue {
+			position: fixed;
+			bottom: 28px;
+			left: 50%;
+			transform: translateX(-50%);
+			padding: 0;
+			background: none;
+			color: rgba(255, 255, 255, .75);
+			font-family: 'Quicksand', sans-serif;
+			font-size: 14px;
+			letter-spacing: 2px;
+			border: none;
+			cursor: pointer;
+			opacity: 0;
+			pointer-events: none;
+			transition: opacity .8s ease, color .2s, transform .15s;
+			z-index: 30;
+			text-shadow: 0 0 12px rgba(255, 150, 200, .6);
+			white-space: nowrap;
+		}
+
+		#btnContinue.show {
+			opacity: .8;
+			pointer-events: all;
+		}
+
+		#btnContinue:hover {
+			opacity: 1 !important;
+			color: #fff;
+			text-shadow: 0 0 18px rgba(255, 150, 200, 1);
+		}
+
+		#btnContinue:active {
+			transform: translateX(-50%) scale(.95);
+		}
+
+		/* ── LETTER ── */
+		#letterIcon {
+			position: fixed;
+			bottom: 28px;
+			right: 28px;
+			z-index: 40;
+			width: 56px;
+			height: 56px;
+			border-radius: 50%;
+			background: linear-gradient(135deg, #ff6eb4, #cc0066);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			font-size: 26px;
+			box-shadow: 0 0 20px rgba(255, 80, 160, .7);
+			opacity: 0;
+			pointer-events: none;
+			transition: opacity .8s ease;
+			animation: iconPulse 2s ease-in-out infinite;
+		}
+
+		@keyframes iconPulse {
+
+			0%,
+			100% {
+				box-shadow: 0 0 20px rgba(255, 80, 160, .5);
+			}
+
+			50% {
+				box-shadow: 0 0 36px rgba(255, 80, 160, 1);
+			}
+		}
+
+		#letterIcon.show {
+			opacity: 1;
+			pointer-events: all;
+		}
+
+		#letterModal {
+			position: fixed;
+			inset: 0;
+			z-index: 50;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: rgba(0, 0, 0, .6);
+			backdrop-filter: blur(6px);
+			opacity: 0;
+			pointer-events: none;
+			transition: opacity .6s ease;
+		}
+
+		#letterModal.show {
+			opacity: 1;
+			pointer-events: all;
+		}
+
+		.letterPaper {
+			background: linear-gradient(135deg, #fff9fb, #ffe8f3);
+			border-radius: 20px;
+			padding: 40px 36px;
+			max-width: min(500px, 90vw);
+			width: 100%;
+			box-shadow: 0 20px 80px rgba(255, 80, 160, .35), 0 0 0 1px rgba(255, 150, 200, .3);
+			position: relative;
+		}
+
+		.letterClose {
+			position: absolute;
+			top: 14px;
+			right: 18px;
+			font-size: 22px;
+			cursor: pointer;
+			color: #cc0066;
+			background: none;
+			border: none;
+		}
+
+		.letterTitle {
+			font-family: 'Dancing Script', cursive;
+			font-size: 28px;
+			color: #8b0055;
+			text-align: center;
+			margin-bottom: 20px;
+		}
+
+		#letterContent {
+			font-size: 15px;
+			line-height: 1.9;
+			color: #5a0030;
+			min-height: 60px;
+		}
+
+		.cursor {
+			display: inline-block;
+			width: 2px;
+			height: 1em;
+			background: #cc0066;
+			animation: blink .7s step-end infinite;
+			vertical-align: text-bottom;
+			margin-left: 1px;
+		}
+
+		@keyframes blink {
+
+			0%,
+			100% {
+				opacity: 1;
+			}
+
+			50% {
+				opacity: 0;
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<div id="ytPlayer"></div>
+	<svg width="0" height="0" style="position:absolute">
+		<defs>
+			<linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+				<stop offset="0%" stop-color="#ff6eb4" />
+				<stop offset="100%" stop-color="#ff1493" />
+			</linearGradient>
+		</defs>
+	</svg>
+	<canvas id="c"></canvas>
+	<canvas id="textCanvas" style="display:none"></canvas>
+
+	<!-- LOADING -->
+	<div class="screen active" id="phaseLoading">
+		<div class="loadText">Đang tải</div>
+		<div class="loadDots">
+			<div class="loadDot"></div>
+			<div class="loadDot"></div>
+			<div class="loadDot"></div>
+		</div>
+	</div>
+
+	<!-- HOLD -->
+	<div class="screen" id="phaseHold">
+		<div id="holdWrap">
+			<span id="holdHint">Giữ để mở khóa</span>
+			<div id="holdBtn">
+				<div class="ring"></div>
+				<div class="ring"></div>
+				<div class="ring"></div>
+				<div class="dot"></div>
+				<svg id="progressRing" viewBox="0 0 88 88">
+					<circle id="progressCircle" cx="44" cy="44" r="41.8" />
+				</svg>
+			</div>
+		</div>
+	</div>
+
+	<!-- PARTICLE TEXT -->
+	<div class="screen" id="phaseText"></div>
+
+	<!-- CONTINUE -->
+	<button id="btnContinue">Click xem tiếp nha</button>
+
+	<!-- LETTER -->
+	<div id="letterIcon">💌</div>
+	<div id="letterModal">
+		<div class="letterPaper">
+			<button class="letterClose" id="letterClose">✕</button>
+			<div class="letterTitle">💌 Lời Nhắn Yêu Thương</div>
+			<div id="letterContent"><span class="cursor"></span></div>
+		</div>
+	</div>
+
+	<script>
+		/* ══ CONFIG ══ */
+		const YOUTUBE_VIDEO_ID = '9UcQ7ddVjoc';
+		const PHOTOS = [
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/613295947_2734739560198260_6625280594203939103_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeEOA3RGddEM8WwYS97MAlDMZ-sPwl0-wl1n6w_CXT7CXZmtdaXRR_Afoefbtw5uifLAPgCKGGr4hFSAmqcpubf5&_nc_ohc=hVmT5QuC6pcQ7kNvwHsPoGI&_nc_oc=Adl75cyrcX69usVS6IG-E-G8WQfuPJA3tXeMcMqbSg4KXfiWogDv89PmAI4e2DKVuEs&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=hBBFdE1V83ArTK68w0Gjxw&_nc_ss=8&oh=00_Afyxjg3SZsNqYxyeT9cWwHqMxqpVZb_qMJL4VhoehpWdzw&oe=69AF8DCE',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/621597058_2748083755530507_8778718884176390901_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeGO1fVB1rhwGive3ThRnTdGR4fy8hIYSF9Hh_LyEhhIX_b339wYhh_E6_Aad5ar8k0XWyv1hrNOlXHCXA5nCcnJ&_nc_ohc=NenWJXVhb4sQ7kNvwEyJIuG&_nc_oc=AdnHcOKwvjslelZR1lTvp_VW5CHjoC9wabr2Y_XpsBzcE0IXlfPz5vIbyHZXGlXhERA&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=-O1xOp3-_QTcew-6WjWPgQ&_nc_ss=8&oh=00_AfxpCWVOS3Ssr7-pjfw0AysHF0nCX4bc8XkGBG-4NaHoTg&oe=69AF9627',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/613133659_2734739556864927_1392743715671851758_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeHTHdUV3bE0QlsFPZMuqJNyvj4zadlnWpu-PjNp2Wdam0BQ9XgFDmKsZwPp0cRMIubHyIHcHuxp1vHQAExPAyJ3&_nc_ohc=CEdyafOj3YAQ7kNvwGmZoFD&_nc_oc=AdmH4uNNc4KUkDiB56rsRAKZLFqg6GZ86l60R4SMVx7ZQ5zwJz0B57cBByZjkgTZ1A4&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=Pqrd1c8-LDCVaXhbZ8Hgig&_nc_ss=8&oh=00_AfyAixURkVqoN5DA4jjliFK8pjfKrIq0ktdum4RzhfAAmw&oe=69AF8225',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/613427401_2734739643531585_8417936728654721771_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeGH8h7m-6wwLyp9abXFY76OnSMAx42lIuidIwDHjaUi6I32hmtyOdx7HdwZOqCcNBkCXFaNV4f5HKEQMIpOIbtl&_nc_ohc=8Sl9_OcItScQ7kNvwGWA0pm&_nc_oc=AdmdW8Ic7oqO_He2JidiYB0XU7Gx2ebOWY4NRpb6j9oFzdUAjMQdm0BkOMhdXWhsSd8&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=TDahwu6n8pjE7Gz2Y6yPvQ&_nc_ss=8&oh=00_Afz7rg9IDe48Lp8LGSw5Tj6HXDzrA25lbQOFZomBkSZxtg&oe=69AF716E',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/613718339_2735643593441190_4672562276542841144_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFuSfzYRa_FhpTjQ9G0aIOuM1NYOHHuJl8zU1g4ce4mX27G_fTT8I3e_dYbzqtCJUhHRN6vw9hFPwp9C4-n9FtE&_nc_ohc=jqA_cz46kf4Q7kNvwF9xhHz&_nc_oc=AdnL1Qt6l2t46rSaZGSTNuWEunC7PmRocI_TqEGd-0QwrRi92wkZoJHCazot05aPTR8&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=WvGbGFEs7CMeguATsAWWUg&_nc_ss=8&oh=00_AfyOA18EdVGMQEv09cV5NJmuBaSsnbUT1dwC4fJbe2-EWA&oe=69AF90B5',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/615096508_2735643590107857_5767459798895668201_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeENGETKkHF-rsqsggHgFcrN_M_G-88barj8z8b7zxtquJq3TD_IQ11vsTTsuF0tUkXAXMRIlzlG3YFcIyAT6gJa&_nc_ohc=h1mVxDOxJHkQ7kNvwG33rMi&_nc_oc=Adkgr-WB3ptgrfacOP4b6jFDnj_KvhaXU_KUczLcthHxSYwfz9P4-MZ9W7y6XrNRwHc&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=N8QnA-88wknXk9DM8ZXI-A&_nc_ss=8&oh=00_Afz1CmsTxoJJ0jsWvtJgcTh98n3_N9v5U6TFJBBBwVZ56Q&oe=69AF8A44',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/614454714_2735643640107852_9033211837227197487_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeHLhoYsa64OFVBlsIAFg1gLFe1euM1e_JoV7V64zV78mo-nyMtBKl7uy4m3NMnBhCrT7hZKHcWElREd_E4-IFHu&_nc_ohc=WGdun6fB5NMQ7kNvwH2rBiY&_nc_oc=AdkEm5kW9uUUqUKwKFfCzaQDISZwVts1mkaknuLWjeLjhOuoyCPtIQQAoj4iJocAVnk&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=biJd0PnkfEA8CE7a6aLjzg&_nc_ss=8&oh=00_AfykVvn31LZZY7RFd1TmXlp1yofF7SJYmOgvto2N4_H6nw&oe=69AF7E0C',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/612917890_2734739613531588_5177422531867196822_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFH7ewRgezzIoGMx_Tlj89gZgktz4AW2cZmCS3PgBbZxkQI_6B66M7kbdTWq2lvdARQXdI4an8fN3Xsf6UHygj7&_nc_ohc=roZoJZenKcQQ7kNvwHWYJ_h&_nc_oc=AdnGgNj1nJ_eaIN6C_UCfzBqmyRD0gLSSC1dhvIvWvzUndZpQfnzVLsey01rFaZpzzk&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=mp6nB7TO7OP1zo6cn_FSAw&_nc_ss=8&oh=00_Afxh8QPJPXKQBNwjSVsB3mGWtvHn3xPwSihsVCaW4AUAtg&oe=69AF7BB9',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/607422562_2727992020873014_7188771018825012424_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeGcbXp3T6fnWIio5sM0tRKO2ybpE7V9A1rbJukTtX0DWtlGtiiNbqolCf-KGs1ghkfRqSBBCwZv52WKFnyYLIn5&_nc_ohc=HWjq6MmyJKkQ7kNvwET0oL_&_nc_oc=Adlak0pku10BgcqZFQpz0WLxefkdTQbg1TZwQiDV0c2bbTt-YCveYuhA0gFCUd-SFVE&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=LKwdHj5MsTXT9_6lmdCUTw&_nc_ss=8&oh=00_AfyBGRqMf968jxWqR_u8QduAPfRoeSOh3L1XJm8GqhxW6g&oe=69AFA35D',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/595506366_2705881616417388_6632732997407159711_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=107&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeHC6JcvmOuskY3S3AraJWtl91AduVL1aYj3UB25UvVpiJk3D0KRI66RTTGtXYjLYKqIs_l24D6Y7Y6f0aYQhHpc&_nc_ohc=gJfeD3XEmXAQ7kNvwF_gxhN&_nc_oc=Adl2_8MBdDEiwF_rJ-9BXgQgwB58GZB-RpiShmD3N2t2erMMbhsGbIKI-3gwDUlRDJM&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=vRwUOJQU8xndY674fGGK2A&_nc_ss=8&oh=00_Afy8Q3zpHzCBNIuk-aiz05Gn25Twqpmrg2JJ2FHFBpzU1g&oe=69AF964B',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/594095725_2705881609750722_8504569164661897822_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=100&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeESV_Io_S4WCwZB9p1TZ4QFiIXIw45AlWqIhcjDjkCVah3Tv1vSjWw9Gck5i1mwc-bI-FhbSK5z0bdWhLENC3dp&_nc_ohc=fbiioPctrckQ7kNvwGiajvZ&_nc_oc=AdmQY-TtEHzTIm8iQ2-v29FQ-uO1z9G5VV-bOGvXRzQ0hHhJqFzddGAe5UiVy09FuOY&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=UJ-PZGVD2xUd9jm6cuyVOg&_nc_ss=8&oh=00_AfxRbHgEbumACw08z7_dL09iFe1sl1_6DKP6VXyGu7Kgxw&oe=69AF7483',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/595116700_2705881386417411_7660917631365800592_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=106&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeF6fj6IPKHsM45ZEu7lTDeITRWRpqviLL5NFZGmq-IsvhuUQ3LPU8ySoWQNhC5Zui5BJMHLwBKSXpg92rA17_ac&_nc_ohc=Bw6r0PjfnvwQ7kNvwETrQ8n&_nc_oc=AdkWq90eBa4k5P5i8HTAH5hy1dMU0Ma2855xNjtk6dhCpEvqnmeMpowT_cBnIZlpWcY&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=5IFdCJn7m4P-BA0GpjbAmg&_nc_ss=8&oh=00_AfxKGDIgWgN9SuR6Hz8K4cwnifi20moOOkIMgQ241SAQJA&oe=69AF8217',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/595469855_2705881373084079_1139926283223205152_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeEtJmqRi6Vx4-S_STN00bzE5opJj2DNMW7mikmPYM0xbiBac5emWM_MH6zb8ckSQ3p-pVRrk0RC9VTg5Nokc9DL&_nc_ohc=FItL7ue_SEsQ7kNvwHBoHMK&_nc_oc=Adl9WhavkjaGDfJOU-_rWl7LQCASTcTGPUX7CVPb4aBUEwPrtp6AijCVm7WYv8VmJNo&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=3tQqk2rXT2Q1gE4FmfypgA&_nc_ss=8&oh=00_AfyRpAa9INhAJecrmhMNT-xA7JNBzRfGSp5XcUpy-AfXWQ&oe=69AF7C39',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/490108820_2479100115762207_3530197213625025209_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=53a332&_nc_eui2=AeHm6IsYKx_NmXzTOozebO8rq__Qkd9I8Gir_9CR30jwaGJZPL5QOsKNjKhqiqK_NSLkWQ2JGZZu9hqPbVYIVy5O&_nc_ohc=9bCrgpHVr3EQ7kNvwH1O_52&_nc_oc=AdmkO5Cljv1wqSFWHsyQQkuoc0BYwUuWiM78pkdOUZbiH4Sojgs-aQZ7hvJW7AnxqkI&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=5qhOqFT0Ewsi6aXhPxWBpQ&_nc_ss=8&oh=00_AfwvvOBv5Fri1NKrHoCYt710bNiwVZwPZ65n2gUmqfAivw&oe=69AF9FDB',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/498324923_2517475548591330_4378078945720835362_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeGPzfhUdAr12kPWLGJvqzzDdv98mtCiOKl2_3ya0KI4qQUx3Se8yTty9hN-yKRLxQZOh5ST_ceKa_McKhLz3pZ2&_nc_ohc=jN6Zg0mQAi0Q7kNvwEMgKQ5&_nc_oc=AdlAxPWI8jC2q3Y2IFpJQX-eyroqxn3YG687m-w1SsNquJuXEFBPk1JkUZvtHUx5Ft4&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=IKGnjTnGUMxoxWe32BmY6g&_nc_ss=8&oh=00_AfzlOK5Eq2t9NM-2NCPq7KUIx9HdcB62YZfAjqZxi_67MQ&oe=69AF7BC5',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/497947229_2515941808744704_4286755611493312619_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=107&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeHLMI7bIpBlJtk8YD4rpXFyAeCzdT15-oAB4LN1PXn6gI7syOVt7oJt0j7rVv1CYz3rHI8gZKoxIgQ3b8Cj7AVe&_nc_ohc=vsMpBx3yl-MQ7kNvwEVlHE_&_nc_oc=AdmQovBYpvcbDLrst1y7vnFzK_67mzXyS81Cd833iIecOH8mqh-v66lDEcononwoxO4&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=VF0OYP_LS-XB5zeq1bP2mg&_nc_ss=8&oh=00_Afxj7HqzvdKHREEeRH-k1NNFK_MNK-PtPMed4oGM07TziA&oe=69AF92E3',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/499210450_2515941802078038_1587271670106248617_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeHscWgQNj_VvHhRaAtVC1Y3AvXdNZWml5oC9d01laaXmsjn0ISqL-W_ar516bkkb-HaJbSgZXPtgVKRkDDDA5QV&_nc_ohc=tHXFONiEzWoQ7kNvwFIwfDN&_nc_oc=Adktj5fxTWdDTN4LpYlUYOPkyPc5qxxfRdEPU8O3KHwxYkRL3gS93fUX1dDbhslr1PA&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=0SAlIzaUCbToWPmM0pZL7w&_nc_ss=8&oh=00_Afyvwsm8hrzC_fH6pT_DvAyjvTBmb6ZUewhUY0RqIdcDFw&oe=69AF9FD7',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/487389608_2467933333545552_3376462584385190670_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=100&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeHxbJFv7ewkIwv7WPgSWT8VifBf-9LN7meJ8F_70s3uZ-Q0LE7eyRZUgCLWvTfdu_TzeidTG-c2aLTb4UFBxhFm&_nc_ohc=bqtynB3WposQ7kNvwFE6_EX&_nc_oc=AdkcNiKRJ45gA-_6qLC2uO671n5FGXZw7LzqJ_x8qqPuNAopLziT2a1ao08Fsp6C_k0&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=kWtmRtdPIFDVIyajtITXSg&_nc_ss=8&oh=00_AfzbWYA7l-D-LyxGcSo88iZey69YabZ-CQ3JYD-x2Pd7cA&oe=69AF9536',
+			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/486328825_2464024667269752_6358222036617225183_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeF8wZdYs9xI6ytEL9gtW5e4bHFcSphpSr5scVxKmGlKvoIGlSMteR6fPprAKVW01oV2OTC8romGRsYgDxHRCO9b&_nc_ohc=49kWaM_XKA8Q7kNvwHymZAo&_nc_oc=AdnooMuGR5h8P9NNfeKo9v_-u0LDhi6irbbKBvl8KEqNEy3N8ITOJWbDUqWa3VLFRKM&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=LvyW3j3okGeylyYy3uR4cQ&_nc_ss=8&oh=00_AfzNGaJycWxrJY7kbJcWBNNGToch6EMFkOX-rDqpWZ1emg&oe=69AF9ED2'
+		];
+		const LETTER_TEXT = `Chúc em một ngày 8/3 💐✨ thật ý nghĩa bên đó nhé! 🌸🇯🇵
+			Anh biết làm việc ở Nhật không hề dễ dàng, nhưng nhìn cách em nỗ lực mỗi ngày, anh thực sự rất ngưỡng mộ. ✨
+			Chúc cô gái của "phương xa" luôn rạng rỡ, bình an và sớm đạt được những dự định của mình. \n
+			Đừng làm việc quá sức, nhớ dành thời gian yêu chiều bản thân một chút nhé! 🎀 gặt hái thật nhiều thành công xinh đẹp và luôn nở nụ cười thật tươi nha! 🍀
+			— Từ một người vẫn luôn dõi theo và ủng hộ em! 🇻🇳❤️`;
+		/* ══ CANVAS ══ */
+		const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
+		let W, H, CX, CY;
+		function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; CX = W / 2; CY = H / 2; }
+		resize(); window.addEventListener('resize', resize);
+
+		/* ══ BACKGROUND PARTICLES — no gravity, spread full screen ══ */
+		const PAL = ['rgba(255,150,200,', 'rgba(255,100,170,', 'rgba(220,80,160,', 'rgba(180,60,140,', 'rgba(255,200,220,', 'rgba(255,255,255,'];
+		const bgParts = [];
+		for (let i = 0; i < 1600; i++) {
+			bgParts.push({
+				x: Math.random() * 1920, y: Math.random() * 1080,
+				r: Math.random() * 1.3 + .3,
+				vx: (Math.random() - .5) * .32, vy: (Math.random() - .5) * .32,
+				ba: Math.random() * .5 + .12, col: PAL[Math.random() * PAL.length | 0],
+				tw: Math.random() * Math.PI * 2,
+			});
+		}
+		function updateBg() {
+			for (const p of bgParts) {
+				p.x += p.vx; p.y += p.vy;
+				if (p.x < -2) p.x = W + 2; else if (p.x > W + 2) p.x = -2;
+				if (p.y < -2) p.y = H + 2; else if (p.y > H + 2) p.y = -2;
+			}
+		}
+		function drawBg() {
+			const t = Date.now() * .0007;
+			for (const p of bgParts) {
+				const a = p.ba * (.5 + .5 * Math.sin(t + p.tw));
+				ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+				ctx.fillStyle = p.col + a.toFixed(2) + ')'; ctx.fill();
+			}
+		}
+
+		/* shooting stars */
+		const sstars = [];
+		setInterval(() => { if (sstars.length < 5) sstars.push({ x: Math.random() * W, y: Math.random() * H * .4, len: Math.random() * 130 + 60, spd: Math.random() * 6 + 4, ang: Math.PI / 6 + (Math.random() - .5) * .3, a: 1, w: Math.random() * 1.2 + .4 }); }, 1400);
+		function drawStars() {
+			for (let i = sstars.length - 1; i >= 0; i--) {
+				const s = sstars[i]; s.x += Math.cos(s.ang) * s.spd; s.y += Math.sin(s.ang) * s.spd; s.a -= .018;
+				if (s.a <= 0) { sstars.splice(i, 1); continue; }
+				const g = ctx.createLinearGradient(s.x, s.y, s.x - Math.cos(s.ang) * s.len, s.y - Math.sin(s.ang) * s.len);
+				g.addColorStop(0, `rgba(255,160,210,${s.a})`); g.addColorStop(1, 'rgba(255,100,170,0)');
+				ctx.save(); ctx.strokeStyle = g; ctx.lineWidth = s.w; ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(255,100,170,.5)';
+				ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - Math.cos(s.ang) * s.len, s.y - Math.sin(s.ang) * s.len); ctx.stroke(); ctx.restore();
+			}
+		}
+		function drawGlow(i = 1) {
+			const r = Math.min(W, H) * .34 * i;
+			const g = ctx.createRadialGradient(CX, CY, 0, CX, CY, r);
+			g.addColorStop(0, `rgba(255,80,160,${.09 * i})`); g.addColorStop(.5, `rgba(200,40,130,${.045 * i})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+			ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+		}
+
+		/* ══ PHASE MANAGER ══ */
+		let phase = 0;
+		function goPhase(n) {
+			document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+			phase = n;
+			const ids = ['phaseLoading', 'phaseHold', 'phaseText', null, null, null, null];
+			if (ids[n]) document.getElementById(ids[n]).classList.add('active');
+		}
+
+		/* ══ AUDIO — phát khi user nhấn giữ (đúng interaction policy) ══
+		   ƯU TIÊN: MP3_URL nếu có → fallback YouTube iframe
+		   Để dùng MP3: thay MP3_URL bằng link nhạc trực tiếp
+		   Để dùng YouTube: để MP3_URL = '' và điền YOUTUBE_VIDEO_ID
+		══════════════════════════════════════════════════════════════ */
+		const MP3_URL = 'blob:https://www.nhaccuatui.com/8df8a704-a99a-4168-b788-0c2ec399526d'; // ← DÁN LINK MP3 VÀO ĐÂY, ví dụ: 'https://example.com/nhac.mp3'
+
+		let audioEl = null;
+		let ytPlayer = null;
+		let ytReady = false;
+
+		function initAudio() {
+			if (MP3_URL) {
+				// Dùng HTML5 Audio — hoạt động offline & local
+				audioEl = new Audio(MP3_URL);
+				audioEl.loop = true;
+				audioEl.volume = 0.7;
+			} else {
+				// Dùng YouTube iframe
+				const tag = document.createElement('script');
+				tag.src = 'https://www.youtube.com/iframe_api';
+				document.head.appendChild(tag);
+			}
+		}
+
+		window.onYouTubeIframeAPIReady = function () {
+			ytPlayer = new YT.Player('ytPlayer', {
+				videoId: YOUTUBE_VIDEO_ID,
+				playerVars: { autoplay: 0, loop: 1, playlist: YOUTUBE_VIDEO_ID, controls: 0, mute: 0 },
+				events: { onReady: e => { ytReady = true; } }
+			});
+		};
+
+		function playMusic() {
+			if (audioEl) {
+				audioEl.play().catch(() => { });
+			} else if (ytReady && ytPlayer) {
+				ytPlayer.setVolume(70);
+				ytPlayer.playVideo();
+			}
+		}
+
+		initAudio();
+
+		/* ══ LOADING → HOLD (2.5s) ══ */
+		setTimeout(() => goPhase(1), 2500);
+
+		/* ══ HOLD BUTTON ══ */
+		const holdBtn = document.getElementById('holdBtn'), progCirc = document.getElementById('progressCircle');
+		const DASHLEN = 263, HOLD_MS = 2200;
+		let holding = false, holdStart = 0, unlocked = false;
+		function startHold() { if (unlocked) return; holding = true; holdStart = Date.now(); holdBtn.classList.add('pressing'); }
+		function endHold() { if (!holding) return; holding = false; holdBtn.classList.remove('pressing'); if (!unlocked) progCirc.style.strokeDashoffset = DASHLEN; }
+		function checkHold() {
+			if (!holding || unlocked) return;
+			const t = Math.min(1, (Date.now() - holdStart) / HOLD_MS);
+			progCirc.style.strokeDashoffset = DASHLEN * (1 - t);
+			if (t >= 1) triggerUnlock();
+		}
+		holdBtn.addEventListener('mousedown', startHold);
+		holdBtn.addEventListener('touchstart', e => { e.preventDefault(); startHold(); }, { passive: false });
+		window.addEventListener('mouseup', endHold); window.addEventListener('touchend', endHold); window.addEventListener('touchcancel', endHold);
+
+		/* ══ UNLOCK → PARTICLE TEXT ══ */
+		function triggerUnlock() {
+			unlocked = true;
+			playMusic();
+			goPhase(2);
+			startParticleText();
+			setTimeout(() => { particleTextState = null; startAssemble(); }, 10500);
+		}
+
+		/* ══ PHASE 2: PARTICLE TEXT ══ */
+		const LINES = ['Chúc Mừng', 'Ngày Quốc Tế', 'Phụ Nữ 🌸'];
+		let particleTextState = null;
+		function sampleTextPixels(text, fontSize, color) {
+			const tc = document.getElementById('textCanvas'), tctx = tc.getContext('2d');
+			tc.width = Math.min(W, 700); tc.height = fontSize * 1.7;
+			tctx.clearRect(0, 0, tc.width, tc.height);
+			tctx.font = `700 ${fontSize}px 'Dancing Script',cursive`;
+			tctx.fillStyle = color; tctx.textAlign = 'center'; tctx.textBaseline = 'middle';
+			tctx.fillText(text, tc.width / 2, tc.height / 2);
+			const data = tctx.getImageData(0, 0, tc.width, tc.height).data, px = [];
+			for (let y = 0; y < tc.height; y += 4)for (let x = 0; x < tc.width; x += 4)
+				if (data[(y * tc.width + x) * 4 + 3] > 80) px.push({ x, y });
+			return { pixels: px, tw: tc.width, th: tc.height };
+		}
+		function startParticleText() {
+			particleTextState = { lines: [], done: false }; scheduleNextLine(0);
+		}
+		function scheduleNextLine(li) {
+			if (li >= LINES.length) { particleTextState.done = true; return; }
+			const fs = [Math.min(W * .11, 82), Math.min(W * .08, 62), Math.min(W * .09, 70)];
+			const cols = ['#ff6eb4', '#ffb0d4', '#ff9ec4'];
+			const { pixels, tw, th } = sampleTextPixels(LINES[li], fs[li] || 60, cols[li] || '#ff8ec0');
+			if (!pixels.length) { scheduleNextLine(li + 1); return; }
+			const gaps = [-.22, 0, .22];
+			const baseY = CY + gaps[li] * H, offX = CX - tw / 2, offY = baseY - th / 2;
+			const parts = pixels.map(px => {
+				const tx = offX + px.x, ty = offY + px.y;
+				const edge = Math.random();
+				let sx, sy;
+				if (edge < .25) { sx = Math.random() * W; sy = -60; }
+				else if (edge < .5) { sx = W + 60; sy = Math.random() * H; }
+				else if (edge < .75) { sx = Math.random() * W; sy = H + 60; }
+				else { sx = -60; sy = Math.random() * H; }
+				return { tx, ty, sx, sy, cx: sx, cy: sy, t: -Math.random() * .5, col: cols[li], r: Math.random() * .85 + .55, alpha: 0 };
+			});
+			particleTextState.lines[li] = { parts, alpha: 1, startTime: Date.now() };
+			setTimeout(() => scheduleNextLine(li + 1), 900);
+		}
+		function updateParticleText() {
+			if (!particleTextState) return;
+			for (let li = 0; li < particleTextState.lines.length; li++) {
+				const line = particleTextState.lines[li]; if (!line) continue;
+				const age = (Date.now() - line.startTime) / 1000;
+				if (age > 4.2) line.alpha = Math.max(0, line.alpha - .011);
+				for (const p of line.parts) {
+					p.t = Math.min(1, p.t + .021); if (p.t < 0) continue;
+					const e = 1 - Math.pow(1 - Math.max(0, p.t), 3);
+					p.cx = p.sx + (p.tx - p.sx) * e; p.cy = p.sy + (p.ty - p.sy) * e;
+					p.alpha = Math.max(0, p.t) * line.alpha; if (p.alpha <= 0) continue;
+					ctx.save(); ctx.globalAlpha = p.alpha; ctx.shadowBlur = 5; ctx.shadowColor = p.col;
+					ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.cx, p.cy, p.r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+				}
+			}
+		}
+
+		/* ══ IMAGE LOADER ══ */
+		const imgObjs = [];
+		PHOTOS.forEach((src, i) => {
+			const img = new Image(); img.crossOrigin = 'anonymous';
+			img.onload = () => { imgObjs[i] = img; };
+			img.src = src; imgObjs.push(null);
+		});
+
+		/* ══ PHASE 3: ASSEMBLE → SHATTER ══ */
+		let assembleState = null;
+		function startAssemble() {
+			goPhase(3);
+			const img = imgObjs.find(x => x && x.naturalWidth > 0) || null;
+			if (!img) { setTimeout(startSphere, 1000); return; }
+			const TW = Math.min(W * .85, 480), TH = TW * (img.naturalHeight / img.naturalWidth) || TW * 1.3;
+			const COLS = 12, ROWS = Math.round(COLS * (TH / TW)), pw = TW / COLS, ph = TH / ROWS;
+			const ox = CX - TW / 2, oy = CY - TH / 2; const pieces = [];
+			for (let r = 0; r < ROWS; r++)for (let c = 0; c < COLS; c++) {
+				const tx = ox + c * pw, ty = oy + r * ph, angle = Math.random() * Math.PI * 2, dist = Math.random() * Math.max(W, H) * .7 + 100;
+				pieces.push({
+					sx: tx + Math.cos(angle) * dist, sy: ty + Math.sin(angle) * dist, tx, ty, pw, ph,
+					sx0: c * pw / TW * img.naturalWidth, sy0: r * ph / TH * img.naturalHeight,
+					sw: pw / TW * img.naturalWidth, sh: ph / TH * img.naturalHeight,
+					t: 0, phase: 'assemble', vx: 0, vy: 0, spin: 0, spinV: (Math.random() - .5) * .08, alpha: 1,
+				});
+			}
+			assembleState = { img, pieces, TW, TH, ox, oy, holdStart: null, shatterStarted: false };
+		}
+		function updateAssemble() {
+			if (!assembleState) return;
+			const { img, pieces, TW, TH } = assembleState;
+			let allDone = true;
+			for (const p of pieces) {
+				if (p.phase === 'assemble') {
+					p.t = Math.min(1, p.t + .016); const e = 1 - Math.pow(1 - p.t, 3);
+					p.cx = p.sx + (p.tx - p.sx) * e; p.cy = p.sy + (p.ty - p.sy) * e; if (p.t < 1) allDone = false;
+				} else if (p.phase === 'shatter') {
+					p.vx *= .96; p.vy *= .96; p.vy += .18; p.cx += p.vx; p.cy += p.vy; p.spin += p.spinV; p.alpha -= .012;
+					if (p.alpha > 0) allDone = false;
+				}
+			}
+			for (const p of pieces) {
+				if (p.alpha <= 0) continue;
+				ctx.save(); ctx.globalAlpha = p.alpha;
+				ctx.translate((p.cx || p.tx) + p.pw / 2, (p.cy || p.ty) + p.ph / 2);
+				if (p.spin) ctx.rotate(p.spin); ctx.translate(-p.pw / 2, -p.ph / 2);
+				ctx.drawImage(img, p.sx0, p.sy0, p.sw, p.sh, 0, 0, p.pw, p.ph); ctx.restore();
+			}
+			if (assembleState.holdStart) {
+				const prog = Math.min(1, (Date.now() - assembleState.holdStart) / 500);
+				ctx.save(); ctx.shadowBlur = 30 * prog; ctx.shadowColor = 'rgba(255,80,160,.9)';
+				ctx.strokeStyle = `rgba(255,120,190,${.7 * prog})`; ctx.lineWidth = 3;
+				ctx.strokeRect(assembleState.ox, assembleState.oy, TW, TH); ctx.restore();
+			}
+			if (allDone && pieces[0]?.phase === 'assemble' && !assembleState.shatterStarted) {
+				assembleState.holdStart = Date.now(); assembleState.shatterStarted = true; setTimeout(startShatter, 2000);
+			}
+			if (allDone && pieces[0]?.phase === 'shatter') { assembleState = null; setTimeout(startSphere, 400); }
+		}
+		function startShatter() {
+			if (!assembleState) return;
+			for (const p of assembleState.pieces) {
+				p.phase = 'shatter';
+				const angle = Math.random() * Math.PI * 2, spd = Math.random() * 8 + 2;
+				p.vx = Math.cos(angle) * spd; p.vy = Math.sin(angle) * spd - 3; p.cx = p.tx; p.cy = p.ty;
+			}
+		}
+
+		/* ══ PHASE 4: IMAGE SPHERE — UV grid, no border, large tiles ══ */
+		let sphereData = null;
+		function startSphere() {
+			goPhase(4);
+			document.getElementById('btnContinue').classList.add('show');
+			const valid = imgObjs.filter(x => x && x.naturalWidth > 0);
+			if (!valid.length) { setTimeout(startFlying, 500); return; }
+
+			/* 7 rows × 12 cols = 84 tiles, ảnh to rõ hơn */
+			const ROWS_S = 7, COLS_S = 12;
+			const R = Math.min(W, H) * .43;
+			const tiles = [];
+			for (let ri = 0; ri < ROWS_S; ri++) {
+				for (let ci = 0; ci < COLS_S; ci++) {
+					const phi = Math.PI * (ri + .5) / ROWS_S;
+					const theta = 2 * Math.PI * (ci + .5) / COLS_S;
+					tiles.push({
+						ox: Math.sin(phi) * Math.cos(theta) * R,
+						oy: -Math.cos(phi) * R,
+						oz: Math.sin(phi) * Math.sin(theta) * R,
+						phi, theta, R,
+						dPhi: Math.PI / ROWS_S,
+						dTheta: 2 * Math.PI / COLS_S,
+						img: valid[(ri * COLS_S + ci) % valid.length],
+						t: 0,
+						ex: (Math.random() - .5) * W * 1.5,
+						ey: (Math.random() - .5) * H * 1.5,
+						ez: (Math.random() - .5) * 900,
+					});
+				}
+			}
+			sphereData = { tiles, rotY: 0, rotX: .12 };
+		}
+
+		function updateSphere() {
+			if (!sphereData) return;
+			sphereData.rotY += .0045;
+			const { tiles, rotY, rotX } = sphereData;
+			const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+			const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+
+			const rendered = [];
+			for (const t of tiles) {
+				t.t = Math.min(1, t.t + .013);
+				const e = 1 - Math.pow(1 - t.t, 3);
+				const wx = t.ex * (1 - e) + t.ox * e;
+				const wy = t.ey * (1 - e) + t.oy * e;
+				const wz = t.ez * (1 - e) + t.oz * e;
+				// rotate Y axis
+				const rx1 = wx * cosY + wz * sinY;
+				const rz1 = -wx * sinY + wz * cosY;
+				// rotate X axis (tilt)
+				const ry2 = wy * cosX - rz1 * sinX;
+				const rz2 = wy * sinX + rz1 * cosX;
+
+				const FOV = 860, depth = FOV + rz2 + 320, sc = FOV / depth;
+				const sx = CX + rx1 * sc, sy = CY + ry2 * sc;
+
+				/* tile size: arc-length based, +15% gap compensation so tiles overlap slightly */
+				const tw = 2 * t.R * Math.sin(t.phi) * Math.sin(t.dTheta / 2) * sc * e * 1.18;
+				const th = 2 * t.R * Math.sin(t.dPhi / 2) * sc * e * 1.18;
+
+				const alpha = Math.max(0, Math.min(1, (.15 + .85 * sc) * e));
+				if (tw < 2 || th < 2 || alpha < .03) continue;
+				rendered.push({ sx, sy, tw, th, depth: rz2, img: t.img, alpha, sc });
+			}
+			rendered.sort((a, b) => a.depth - b.depth);
+
+			for (const t of rendered) {
+				ctx.save();
+				ctx.globalAlpha = t.alpha;
+				// NO border, NO stroke — just draw image
+				ctx.drawImage(t.img, t.sx - t.tw / 2, t.sy - t.th / 2, t.tw, t.th);
+				// back-hemisphere shadow for 3D feel
+				if (t.depth > 50) {
+					ctx.fillStyle = `rgba(0,0,0,${Math.min(.6, t.depth / 700)})`;
+					ctx.fillRect(t.sx - t.tw / 2, t.sy - t.th / 2, t.tw, t.th);
+				}
+				ctx.restore();
+			}
+
+			// no vignette ring
+		}
+
+		/* ══ PHASE 5: FLYING PHOTOS (unchanged) ══ */
+		let flyingPhotos = [], flyPhase = false;
+		function startFlying() {
+			goPhase(5); flyPhase = true; flyingPhotos = [];
+			const valid = imgObjs.filter(x => x && x.naturalWidth > 0);
+			for (let i = 0; i < valid.length; i++) {
+				const img = valid[i];
+				const w = Math.random() * 90 + 80, h = w * (img.naturalHeight / img.naturalWidth) || w * 1.3;
+				flyingPhotos.push({
+					img, x: Math.random() * W, y: H + h + Math.random() * 300, w, h,
+					vx: (Math.random() - .5) * 1.2, vy: -(Math.random() * 1.5 + 1.2),
+					rot: (Math.random() - .5) * .3, rotV: (Math.random() - .5) * .005,
+					alpha: 1, glowAnim: Math.random() * Math.PI * 2,
+				});
+			}
+			setTimeout(() => document.getElementById('letterIcon').classList.add('show'), 3000);
+		}
+		function updateFlying() {
+			if (!flyPhase) return;
+			for (const p of flyingPhotos) {
+				p.x += p.vx; p.y += p.vy; p.rot += p.rotV; p.glowAnim += .06;
+				if (p.y + p.h < -50) { p.y = H + p.h; p.x = Math.random() * W; }
+				const glow = .5 + .5 * Math.sin(p.glowAnim);
+				ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h / 2); ctx.rotate(p.rot);
+				ctx.shadowBlur = 14 + 10 * glow; ctx.shadowColor = `rgba(255,${80 + 60 * glow | 0},160,${.7 + .3 * glow})`;
+				ctx.strokeStyle = `rgba(255,${100 + 80 * glow | 0},180,${.6 + .4 * glow})`; ctx.lineWidth = 2 + glow * 2;
+				ctx.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h);
+				ctx.drawImage(p.img, -p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+			}
+		}
+
+		document.getElementById('btnContinue').addEventListener('click', () => {
+			document.getElementById('btnContinue').classList.remove('show');
+			sphereData = null; startFlying();
+		});
+
+		/* ══ LETTER ══ */
+		let letterTyping = false;
+		document.getElementById('letterIcon').addEventListener('click', openLetter);
+		document.getElementById('letterClose').addEventListener('click', () => document.getElementById('letterModal').classList.remove('show'));
+		function openLetter() { document.getElementById('letterModal').classList.add('show'); if (!letterTyping) typeLetter(); }
+		function typeLetter() {
+			letterTyping = true; const el = document.getElementById('letterContent');
+			let i = 0; el.innerHTML = '<span class="cursor"></span>';
+			function type() {
+				if (i >= LETTER_TEXT.length) { letterTyping = false; return; }
+				const ch = LETTER_TEXT[i++];
+				el.innerHTML = LETTER_TEXT.substring(0, i).replace(/\n/g, '<br>') + '<span class="cursor"></span>';
+				setTimeout(type, ch === '\n' ? 400 : ch === ' ' ? 60 : Math.random() * 55 + 25);
+			}
+			setTimeout(type, 600);
+		}
+
+		/* ══ MAIN LOOP ══ */
+		function loop() {
+			requestAnimationFrame(loop);
+			ctx.fillStyle = 'rgba(0,0,0,.16)'; ctx.fillRect(0, 0, W, H);
+			drawGlow(.8 + .2 * Math.sin(Date.now() * .0008));
+			updateBg(); drawBg();
+			drawStars();
+			checkHold();
+			updateParticleText();
+			updateAssemble();
+			updateSphere();
+			updateFlying();
+		}
+		loop();
+	</script>
+</body>
+
+</html>
