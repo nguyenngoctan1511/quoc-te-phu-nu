@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<title>Happy Women's Day 🌸</title>
+	<link
+		href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Quicksand:wght@400;500&display=swap"
+		rel="stylesheet">
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box
+		}
+
+		html,
+		body {
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+			background: #000;
+			font-family: 'Quicksand', sans-serif;
+			touch-action: none
+		}
+
+		#c2d {
+			display: block;
+			position: fixed;
+			top: 0;
+			left: 0;
+			z-index: 0
+		}
+
+		#c3d {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			z-index: 1;
+			pointer-events: none
+		}
+
+		#c3d.active {
+			display: block;
+			pointer-events: all
+		}
+
+		.screen {
+			position: fixed;
+			inset: 0;
+			z-index: 20;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			opacity: 0;
+			pointer-events: none;
+			transition: opacity 1s ease
+		}
+
+		.screen.active {
+			opacity: 1;
+			pointer-events: all
+		}
+
+		#phaseLoading {
+			background: transparent
+		}
+
+		.loadText {
+			color: rgba(225, 120, 136, .85);
+			font-family: 'Dancing Script', cursive;
+			font-size: 32px;
+			letter-spacing: 2px;
+			text-shadow: 0 0 20px rgba(255, 100, 180, .6)
+		}
+
+		.loadBarWrap {
+			width: 200px;
+			height: 3px;
+			background: rgba(255, 130, 190, .2);
+			border-radius: 10px;
+			margin-top: 24px;
+			overflow: hidden
+		}
+
+		.loadBar {
+			height: 100%;
+			width: 0%;
+			background: linear-gradient(90deg, #ff6eb4, #ff1493);
+			border-radius: 10px;
+			box-shadow: 0 0 8px rgba(255, 100, 180, .8);
+			transition: width .1s linear
+		}
+
+		#phaseHold {
+			justify-content: flex-end;
+			padding-bottom: 90px
+		}
+
+		#holdWrap {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 28px
+		}
+
+		#holdHint {
+			color: rgba(255, 182, 193, .85);
+			font-size: 13px;
+			letter-spacing: 3px;
+			text-transform: uppercase;
+			text-shadow: 0 0 12px rgba(255, 100, 180, .6);
+			animation: pulse 2s ease-in-out infinite
+		}
+
+		@keyframes pulse {
+
+			0%,
+			100% {
+				opacity: .5
+			}
+
+			50% {
+				opacity: 1
+			}
+		}
+
+		#holdBtn {
+			position: relative;
+			width: 80px;
+			height: 80px;
+			cursor: pointer;
+			user-select: none;
+			-webkit-user-select: none
+		}
+
+		.ring {
+			position: absolute;
+			inset: 0;
+			border-radius: 50%;
+			border: 1.5px solid rgba(255, 130, 190, .35);
+			animation: ringPulse 2.5s ease-in-out infinite
+		}
+
+		.ring:nth-child(2) {
+			animation-delay: .6s;
+			transform: scale(1.28)
+		}
+
+		.ring:nth-child(3) {
+			animation-delay: 1.2s;
+			transform: scale(1.58)
+		}
+
+		@keyframes ringPulse {
+
+			0%,
+			100% {
+				opacity: .2
+			}
+
+			50% {
+				opacity: .75
+			}
+		}
+
+		.dot {
+			position: absolute;
+			inset: 8px;
+			border-radius: 50%;
+			background: radial-gradient(circle at 40% 35%, #ff9ec4, #d9006e 60%, #8b0038);
+			box-shadow: 0 0 18px 6px rgba(255, 80, 160, .55), 0 0 40px 12px rgba(200, 0, 120, .25);
+			transition: transform .15s, box-shadow .15s
+		}
+
+		#holdBtn.pressing .dot {
+			transform: scale(.88);
+			box-shadow: 0 0 28px 12px rgba(255, 80, 160, .85), 0 0 60px 20px rgba(200, 0, 120, .45)
+		}
+
+		#progressRing {
+			position: absolute;
+			inset: -4px;
+			width: calc(100% + 8px);
+			height: calc(100% + 8px);
+			transform: rotate(-90deg);
+			pointer-events: none
+		}
+
+		#progressCircle {
+			fill: none;
+			stroke: url(#grad);
+			stroke-width: 2.5;
+			stroke-linecap: round;
+			stroke-dasharray: 263;
+			stroke-dashoffset: 263;
+			transition: stroke-dashoffset .05s linear;
+			filter: drop-shadow(0 0 4px rgba(255, 100, 180, 1))
+		}
+
+		#phaseText {
+			background: transparent;
+			pointer-events: none
+		}
+
+		#btnContinue {
+			position: fixed;
+			bottom: 28px;
+			left: 50%;
+			transform: translateX(-50%);
+			padding: 0;
+			background: none;
+			color: rgba(255, 255, 255, .75);
+			font-family: 'Quicksand', sans-serif;
+			font-size: 14px;
+			letter-spacing: 2px;
+			border: none;
+			cursor: pointer;
+			opacity: 0;
+			pointer-events: none;
+			transition: opacity .8s ease, color .2s, transform .15s;
+			z-index: 30;
+			text-shadow: 0 0 12px rgba(255, 150, 200, .6);
+			white-space: nowrap
+		}
+
+		#btnContinue.show {
+			opacity: .8;
+			pointer-events: all
+		}
+
+		#btnContinue:hover {
+			opacity: 1 !important;
+			color: #fff;
+			text-shadow: 0 0 18px rgba(255, 150, 200, 1)
+		}
+
+		#btnContinue:active {
+			transform: translateX(-50%) scale(.95)
+		}
+
+		#letterIcon {
+			position: fixed;
+			bottom: 28px;
+			right: 28px;
+			z-index: 40;
+			width: 56px;
+			height: 56px;
+			border-radius: 50%;
+			background: linear-gradient(135deg, #ff6eb4, #cc0066);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			font-size: 26px;
+			box-shadow: 0 0 20px rgba(255, 80, 160, .7);
+			opacity: 0;
+			pointer-events: none;
+			transition: opacity .8s ease;
+			animation: iconPulse 2s ease-in-out infinite
+		}
+
+		@keyframes iconPulse {
+
+			0%,
+			100% {
+				box-shadow: 0 0 20px rgba(255, 80, 160, .5)
+			}
+
+			50% {
+				box-shadow: 0 0 36px rgba(255, 80, 160, 1)
+			}
+		}
+
+		#letterIcon.show {
+			opacity: 1;
+			pointer-events: all
+		}
+
+		#letterModal {
+			position: fixed;
+			inset: 0;
+			z-index: 50;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: rgba(0, 0, 0, .6);
+			backdrop-filter: blur(6px);
+			opacity: 0;
+			pointer-events: none;
+			transition: opacity .6s ease
+		}
+
+		#letterModal.show {
+			opacity: 1;
+			pointer-events: all
+		}
+
+		.letterPaper {
+			background: linear-gradient(135deg, #fff9fb, #ffe8f3);
+			border-radius: 20px;
+			padding: 40px 36px;
+			max-width: min(500px, 90vw);
+			width: 100%;
+			box-shadow: 0 20px 80px rgba(255, 80, 160, .35), 0 0 0 1px rgba(255, 150, 200, .3);
+			position: relative
+		}
+
+		.letterClose {
+			position: absolute;
+			top: 14px;
+			right: 18px;
+			font-size: 22px;
+			cursor: pointer;
+			color: #cc0066;
+			background: none;
+			border: none
+		}
+
+		.letterTitle {
+			font-family: 'Dancing Script', cursive;
+			font-size: 28px;
+			color: #8b0055;
+			text-align: center;
+			margin-bottom: 20px
+		}
+
+		#letterContent {
+			font-size: 15px;
+			line-height: 1.9;
+			color: #5a0030;
+			min-height: 60px
+		}
+
+		.cursor {
+			display: inline-block;
+			width: 2px;
+			height: 1em;
+			background: #cc0066;
+			animation: blink .7s step-end infinite;
+			vertical-align: text-bottom;
+			margin-left: 1px
+		}
+
+		@keyframes blink {
+
+			0%,
+			100% {
+				opacity: 1
+			}
+
+			50% {
+				opacity: 0
+			}
+		}
+	</style>
+</head>
+
+<body>
+
+	<svg width="0" height="0" style="position:absolute">
+		<defs>
+			<linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+				<stop offset="0%" stop-color="#ff6eb4" />
+				<stop offset="100%" stop-color="#ff1493" />
+			</linearGradient>
+		</defs>
+	</svg>
+
+	<canvas id="c2d"></canvas>
+	<canvas id="c3d"></canvas>
+	<canvas id="textCanvas" style="display:none"></canvas>
+
+	<div class="screen active" id="phaseLoading">
+		<div class="loadText">Đang tải...</div>
+		<div class="loadBarWrap">
+			<div class="loadBar" id="loadBar"></div>
+		</div>
+	</div>
+
+	<div class="screen" id="phaseHold">
+		<div id="holdWrap">
+			<span id="holdHint">Giữ để mở khóa</span>
+			<div id="holdBtn">
+				<div class="ring"></div>
+				<div class="ring"></div>
+				<div class="ring"></div>
+				<div class="dot"></div>
+				<svg id="progressRing" viewBox="0 0 88 88">
+					<circle id="progressCircle" cx="44" cy="44" r="41.8" />
+				</svg>
+			</div>
+		</div>
+	</div>
+
+	<div class="screen" id="phaseText"></div>
+	<button id="btnContinue">Click xem tiếp nha</button>
+	<div id="letterIcon">💌</div>
+
+	<div id="letterModal">
+		<div class="letterPaper">
+			<button class="letterClose" id="letterClose">✕</button>
+			<div class="letterTitle">💌 Lời Nhắn Yêu Thương</div>
+			<div id="letterContent"><span class="cursor"></span></div>
+		</div>
+	</div>
+
+	<script>
+		// ═══════════════════════════════════════════════
+		// CONFIG
+		// ═══════════════════════════════════════════════
+		var MP3_URL = './noi_nay_co_anh_3.mp3';
+		var PHOTOS = [
+			'./file/2.jpg', './file/3.jpg', './file/4.jpg', './file/5.jpg',
+			'./file/6.jpg', './file/8.jpg', './file/9.jpg', './file/10.jpg',
+			'./file/12.jpg', './file/13.jpg', './file/14.jpg', './file/15.jpg',
+			'./file/16.jpg', './file/17.jpg', './file/18.jpg', './file/19.jpg',
+		];
+		var LETTER_TEXT = 'Chúc em một ngày 8/3 💐✨ thật ý nghĩa bên đó nhé! 🌸🇯🇵\nAnh biết làm việc ở Nhật không hề dễ dàng, nhưng nhìn cách em nỗ lực mỗi ngày, anh thực sự rất ngưỡng mộ. ✨\nChúc cô gái nơi "phương xa" luôn rạng rỡ, bình an và sớm đạt được những dự định của mình.\nĐừng làm việc quá sức, nhớ dành thời gian yêu chiều bản thân một chút nhé! 🎀 Gặt hái thật nhiều thành công, xinh đẹp và luôn nở nụ cười thật tươi nha! 🍀\n\n— From: Từ một người giấu tên tại Việt Nam! 🇻🇳❤️';
+
+		// ═══════════════════════════════════════════════
+		// 2D CANVAS
+		// ═══════════════════════════════════════════════
+		var c2d = document.getElementById('c2d');
+		var ctx = c2d.getContext('2d');
+		var W, H, CX, CY;
+
+		function resize() {
+			var dpr = window.devicePixelRatio || 1;
+			W = window.innerWidth; H = window.innerHeight;
+			CX = W / 2; CY = H / 2;
+			c2d.width = W * dpr; c2d.height = H * dpr;
+			c2d.style.width = W + 'px'; c2d.style.height = H + 'px';
+			ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+		}
+		resize();
+		window.addEventListener('resize', function () {
+			resize();
+			if (threeRenderer) {
+				threeRenderer.setSize(W, H);
+				threeCamera.aspect = W / H;
+				threeCamera.updateProjectionMatrix();
+			}
+		});
+
+		// ═══════════════════════════════════════════════
+		// BACKGROUND PARTICLES
+		// ═══════════════════════════════════════════════
+		var PAL = ['rgba(255,150,200,', 'rgba(255,100,170,', 'rgba(220,80,160,', 'rgba(180,60,140,', 'rgba(255,200,220,', 'rgba(255,255,255,'];
+		var bgParts = [];
+		for (var i = 0; i < 1600; i++) bgParts.push({ x: Math.random() * 1920, y: Math.random() * 1080, r: Math.random() * 1.3 + .3, vx: (Math.random() - .5) * .32, vy: (Math.random() - .5) * .32, ba: Math.random() * .5 + .12, col: PAL[Math.floor(Math.random() * PAL.length)], tw: Math.random() * Math.PI * 2 });
+
+		function updateBg() {
+			for (var p of bgParts) {
+				p.x += p.vx; p.y += p.vy;
+				if (p.x < -2) p.x = W + 2; else if (p.x > W + 2) p.x = -2;
+				if (p.y < -2) p.y = H + 2; else if (p.y > H + 2) p.y = -2;
+			}
+		}
+		function drawBg() {
+			var t = Date.now() * .0007;
+			for (var p of bgParts) {
+				var a = p.ba * (.5 + .5 * Math.sin(t + p.tw));
+				ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+				ctx.fillStyle = p.col + a.toFixed(2) + ')'; ctx.fill();
+			}
+		}
+		var sstars = [];
+		setInterval(function () {
+			if (sstars.length < 5) sstars.push({ x: Math.random() * W, y: Math.random() * H * .4, len: Math.random() * 130 + 60, spd: Math.random() * 6 + 4, ang: Math.PI / 6 + (Math.random() - .5) * .3, a: 1, w: Math.random() * 1.2 + .4 });
+		}, 1400);
+		function drawStars() {
+			for (var i = sstars.length - 1; i >= 0; i--) {
+				var s = sstars[i]; s.x += Math.cos(s.ang) * s.spd; s.y += Math.sin(s.ang) * s.spd; s.a -= .018;
+				if (s.a <= 0) { sstars.splice(i, 1); continue; }
+				var g = ctx.createLinearGradient(s.x, s.y, s.x - Math.cos(s.ang) * s.len, s.y - Math.sin(s.ang) * s.len);
+				g.addColorStop(0, 'rgba(255,160,210,' + s.a + ')'); g.addColorStop(1, 'rgba(255,100,170,0)');
+				ctx.save(); ctx.strokeStyle = g; ctx.lineWidth = s.w; ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(255,100,170,.5)';
+				ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - Math.cos(s.ang) * s.len, s.y - Math.sin(s.ang) * s.len);
+				ctx.stroke(); ctx.restore();
+			}
+		}
+		function drawGlow(i) {
+			i = i || 1;
+			var r = Math.min(W, H) * .34 * i;
+			var g = ctx.createRadialGradient(CX, CY, 0, CX, CY, r);
+			g.addColorStop(0, 'rgba(255,80,160,' + (.09 * i) + ')');
+			g.addColorStop(.5, 'rgba(200,40,130,' + (.045 * i) + ')');
+			g.addColorStop(1, 'rgba(0,0,0,0)');
+			ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+		}
+
+		// ═══════════════════════════════════════════════
+		// PHASE MANAGER
+		// ═══════════════════════════════════════════════
+		var phase = 0;
+		var PHASE_IDS = ['phaseLoading', 'phaseHold', 'phaseText', null, null, null];
+		function goPhase(n) {
+			phase = n;
+			document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+			if (PHASE_IDS[n]) {
+				var el = document.getElementById(PHASE_IDS[n]);
+				if (el) el.classList.add('active');
+			}
+		}
+
+		// ═══════════════════════════════════════════════
+		// AUDIO
+		// ═══════════════════════════════════════════════
+		var audioEl = null;
+		function playMusic() { if (audioEl) audioEl.play().catch(function () { }); }
+
+		// ═══════════════════════════════════════════════
+		// LOADING BAR — 3s fake progress then go Hold
+		// ═══════════════════════════════════════════════
+		var loadPct = 0;
+		var loadBar = document.getElementById('loadBar');
+		var loadTimer = setInterval(function () {
+			loadPct += 2;
+			loadBar.style.width = loadPct + '%';
+			if (loadPct >= 100) {
+				clearInterval(loadTimer);
+				setTimeout(function () { goPhase(1); }, 300);
+			}
+		}, 60);
+
+		// ═══════════════════════════════════════════════
+		// HOLD BUTTON
+		// ═══════════════════════════════════════════════
+		var holdBtn = document.getElementById('holdBtn');
+		var progCirc = document.getElementById('progressCircle');
+		var DASHLEN = 263, HOLD_MS = 2200;
+		var holding = false, holdStart = 0, unlocked = false;
+
+		function startHold() {
+			if (unlocked) return;
+			if (!audioEl) {
+				audioEl = new Audio(MP3_URL);
+				audioEl.loop = true; audioEl.volume = 0.7; audioEl.load();
+			}
+			holding = true; holdStart = Date.now();
+			holdBtn.classList.add('pressing');
+		}
+		function endHold() {
+			if (!holding) return;
+			holding = false; holdBtn.classList.remove('pressing');
+			if (!unlocked) progCirc.style.strokeDashoffset = DASHLEN;
+		}
+		function checkHold() {
+			if (!holding || unlocked) return;
+			var t = Math.min(1, (Date.now() - holdStart) / HOLD_MS);
+			progCirc.style.strokeDashoffset = DASHLEN * (1 - t);
+			if (t >= 1) triggerUnlock();
+		}
+
+		holdBtn.addEventListener('mousedown', startHold);
+		holdBtn.addEventListener('touchstart', function (e) { e.preventDefault(); startHold(); }, { passive: false });
+		window.addEventListener('mouseup', endHold);
+		window.addEventListener('touchend', endHold);
+		window.addEventListener('touchcancel', endHold);
+
+		// ═══════════════════════════════════════════════
+		// UNLOCK
+		// ═══════════════════════════════════════════════
+		function triggerUnlock() {
+			unlocked = true;
+			playMusic();
+			setTimeout(function () {
+				goPhase(2);
+				startParticleText();
+				setTimeout(function () { particleTextState = null; startAssemble(); }, 9500);
+			}, 1000);
+		}
+
+		// ═══════════════════════════════════════════════
+		// PARTICLE TEXT
+		// ═══════════════════════════════════════════════
+		var LINES = ['Chúc Mừng', 'Ngày Quốc Tế', 'Phụ Nữ 🌸'];
+		var particleTextState = null;
+
+		function sampleTextPixels(text, fontSize, color) {
+			var tc = document.getElementById('textCanvas');
+			var tctx = tc.getContext('2d');
+			tc.width = Math.min(W, 700); tc.height = fontSize * 1.7;
+			tctx.clearRect(0, 0, tc.width, tc.height);
+			tctx.font = '700 ' + fontSize + 'px \'Dancing Script\',cursive';
+			tctx.fillStyle = color; tctx.textAlign = 'center'; tctx.textBaseline = 'middle';
+			tctx.fillText(text, tc.width / 2, tc.height / 2);
+			var data = tctx.getImageData(0, 0, tc.width, tc.height).data, px = [];
+			for (var y = 0; y < tc.height; y += 4) for (var x = 0; x < tc.width; x += 4)
+				if (data[(y * tc.width + x) * 4 + 3] > 80) px.push({ x: x, y: y });
+			return { pixels: px, tw: tc.width, th: tc.height };
+		}
+
+		function startParticleText() {
+			particleTextState = { lines: [], done: false };
+			scheduleNextLine(0);
+		}
+
+		function scheduleNextLine(li) {
+			if (li >= LINES.length) { particleTextState.done = true; return; }
+			var fs = [Math.min(W * .16, 120), Math.min(W * .13, 100), Math.min(W * .15, 115)];
+			var cols = ['#ff6eb4', '#ffb0d4', '#ff9ec4'];
+			var res = sampleTextPixels(LINES[li], fs[li] || 60, cols[li] || '#ff8ec0');
+			if (!res.pixels.length) { scheduleNextLine(li + 1); return; }
+			var gaps = [-.22, 0, .22];
+			var baseY = CY + gaps[li] * H, offX = CX - res.tw / 2, offY = baseY - res.th / 2;
+			var parts = res.pixels.map(function (px) {
+				var tx = offX + px.x, ty = offY + px.y;
+				var edge = Math.random(), sx, sy;
+				if (edge < .25) { sx = Math.random() * W; sy = -60; }
+				else if (edge < .5) { sx = W + 60; sy = Math.random() * H; }
+				else if (edge < .75) { sx = Math.random() * W; sy = H + 60; }
+				else { sx = -60; sy = Math.random() * H; }
+				return { tx: tx, ty: ty, sx: sx, sy: sy, cx: sx, cy: sy, t: -Math.random() * .5, col: cols[li], r: Math.random() * .85 + .55, alpha: 0 };
+			});
+			particleTextState.lines[li] = { parts: parts, alpha: 1, startTime: Date.now() };
+			setTimeout(function () { scheduleNextLine(li + 1); }, 900);
+		}
+
+		function updateParticleText() {
+			if (!particleTextState) return;
+			for (var li = 0; li < particleTextState.lines.length; li++) {
+				var line = particleTextState.lines[li];
+				if (!line) continue;
+				var age = (Date.now() - line.startTime) / 1000;
+				if (age > 4.2) line.alpha = Math.max(0, line.alpha - .011);
+				for (var p of line.parts) {
+					p.t = Math.min(1, p.t + .042);
+					if (p.t < 0) continue;
+					var e = 1 - Math.pow(1 - Math.max(0, p.t), 3);
+					p.cx = p.sx + (p.tx - p.sx) * e; p.cy = p.sy + (p.ty - p.sy) * e;
+					p.alpha = Math.max(0, p.t) * line.alpha;
+					if (p.alpha <= 0) continue;
+					ctx.save(); ctx.globalAlpha = p.alpha; ctx.shadowBlur = 5;
+					ctx.shadowColor = p.col; ctx.fillStyle = p.col;
+					ctx.beginPath(); ctx.arc(p.cx, p.cy, p.r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+				}
+			}
+		}
+
+		// ═══════════════════════════════════════════════
+		// IMAGE PRELOAD
+		// ═══════════════════════════════════════════════
+		var imgObjs = new Array(PHOTOS.length).fill(null);
+		PHOTOS.forEach(function (src, i) {
+			var img = new Image();
+			img.onload = function () { imgObjs[i] = img; };
+			img.onerror = function () { imgObjs[i] = null; };
+			img.src = src;
+		});
+		function validImgs() { return imgObjs.filter(function (x) { return x && x.naturalWidth > 0; }); }
+
+		// ═══════════════════════════════════════════════
+		// ASSEMBLE → SHATTER
+		// ═══════════════════════════════════════════════
+		var assembleState = null;
+		function startAssemble() {
+			goPhase(3);
+			var img = validImgs()[0];
+			if (!img) { setTimeout(startSphere, 1000); return; }
+			var TW = Math.min(W * .6, 320), TH = TW * (img.naturalHeight / img.naturalWidth) || TW * 1.3;
+			var COLS = 12, ROWS = Math.round(COLS * (TH / TW)), pw = TW / COLS, ph = TH / ROWS;
+			var ox = CX - TW / 2, oy = CY - TH / 2, pieces = [];
+			for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) {
+				var tx = ox + c * pw, ty = oy + r * ph, angle = Math.random() * Math.PI * 2, dist = Math.random() * Math.max(W, H) * .7 + 100;
+				pieces.push({
+					sx: tx + Math.cos(angle) * dist, sy: ty + Math.sin(angle) * dist, tx: tx, ty: ty, pw: pw, ph: ph,
+					sx0: c * pw / TW * img.naturalWidth, sy0: r * ph / TH * img.naturalHeight, sw: pw / TW * img.naturalWidth, sh: ph / TH * img.naturalHeight,
+					t: 0, phase: 'assemble', vx: 0, vy: 0, spin: 0, spinV: (Math.random() - .5) * .08, alpha: 1
+				});
+			}
+			assembleState = { img: img, pieces: pieces, TW: TW, TH: TH, ox: ox, oy: oy, holdStart: null, shatterStarted: false };
+		}
+
+		function updateAssemble() {
+			if (!assembleState) return;
+			var img = assembleState.img, pieces = assembleState.pieces, TW = assembleState.TW, TH = assembleState.TH;
+			var allDone = true;
+			for (var p of pieces) {
+				if (p.phase === 'assemble') {
+					p.t = Math.min(1, p.t + .016);
+					var e = 1 - Math.pow(1 - p.t, 3);
+					p.cx = p.sx + (p.tx - p.sx) * e; p.cy = p.sy + (p.ty - p.sy) * e;
+					if (p.t < 1) allDone = false;
+				} else if (p.phase === 'shatter') {
+					p.vx *= .96; p.vy *= .96; p.vy += .18;
+					p.cx += p.vx; p.cy += p.vy; p.spin += p.spinV; p.alpha -= .055;
+					if (p.alpha > 0) allDone = false;
+				}
+			}
+			for (var p of pieces) {
+				if (p.alpha <= 0) continue;
+				ctx.save(); ctx.globalAlpha = p.alpha;
+				ctx.translate((p.cx || p.tx) + p.pw / 2, (p.cy || p.ty) + p.ph / 2);
+				if (p.spin) ctx.rotate(p.spin);
+				ctx.translate(-p.pw / 2, -p.ph / 2);
+				ctx.drawImage(img, p.sx0, p.sy0, p.sw, p.sh, 0, 0, p.pw, p.ph);
+				ctx.restore();
+			}
+			if (assembleState.holdStart) {
+				var prog = Math.min(1, (Date.now() - assembleState.holdStart) / 500);
+				ctx.save(); ctx.shadowBlur = 30 * prog; ctx.shadowColor = 'rgba(255,80,160,.9)';
+				ctx.strokeStyle = 'rgba(255,120,190,' + (0.7 * prog) + ')'; ctx.lineWidth = 3;
+				ctx.strokeRect(assembleState.ox, assembleState.oy, TW, TH); ctx.restore();
+			}
+			if (allDone && pieces[0] && pieces[0].phase === 'assemble' && !assembleState.shatterStarted) {
+				assembleState.holdStart = Date.now(); assembleState.shatterStarted = true;
+				setTimeout(startShatter, 2000);
+			}
+			if (allDone && pieces[0] && pieces[0].phase === 'shatter') {
+				assembleState = null; setTimeout(startSphere, 400);
+			}
+		}
+
+		function startShatter() {
+			if (!assembleState) return;
+			for (var p of assembleState.pieces) {
+				p.phase = 'shatter';
+				var angle = Math.random() * Math.PI * 2, spd = Math.random() * 8 + 2;
+				p.vx = Math.cos(angle) * spd; p.vy = Math.sin(angle) * spd - 3;
+				p.cx = p.tx; p.cy = p.ty;
+			}
+		}
+
+		// ═══════════════════════════════════════════════
+		// THREE.JS SPHERE — lazy loaded
+		// ═══════════════════════════════════════════════
+		var threeScene = null, threeCamera = null, threeRenderer = null;
+		var sphereGroup = null, threeRunning = false, threeStars = null;
+
+		function initThree() {
+			if (typeof THREE === 'undefined') return false;
+			var c3d = document.getElementById('c3d');
+			var isMobile = /Mobi|Android/i.test(navigator.userAgent);
+			threeScene = new THREE.Scene();
+			threeCamera = new THREE.PerspectiveCamera(60, W / H, 0.1, 1000);
+			threeCamera.position.z = 13;
+			threeRenderer = new THREE.WebGLRenderer({ canvas: c3d, antialias: !isMobile, alpha: true, powerPreference: 'high-performance' });
+			threeRenderer.setSize(W, H);
+			threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1 : 1.5)); // cap pixelRatio
+			threeRenderer.setClearColor(0x000000, 0);
+			return true;
+		}
+
+		function startSphere() {
+			var valid = validImgs();
+			if (valid.length < 2) { setTimeout(startSphere, 600); return; }
+
+			// Try to load Three.js if not already loaded
+			if (typeof THREE === 'undefined') {
+				var s = document.createElement('script');
+				s.src = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js';
+				s.onload = function () { buildSphere(valid); };
+				s.onerror = function () { startFlying(); }; // fallback
+				document.head.appendChild(s);
+				return;
+			}
+			buildSphere(valid);
+		}
+
+		function buildSphere(valid) {
+			goPhase(4);
+			var c3d = document.getElementById('c3d');
+			c3d.classList.add('active');
+
+			if (!threeScene && !initThree()) {
+				c3d.classList.remove('active');
+				startFlying(); return;
+			}
+
+			// Clear old
+			if (sphereGroup) {
+				sphereGroup.traverse(function (obj) { if (obj.geometry) obj.geometry.dispose(); if (obj.material) obj.material.dispose(); });
+				threeScene.remove(sphereGroup);
+			}
+			if (threeStars) threeScene.remove(threeStars);
+
+			sphereGroup = new THREE.Group();
+			threeScene.add(sphereGroup);
+
+			// ── Pre-build ONE texture per unique image (shared across tiles) ──
+			var texCache = [];
+			for (var i = 0; i < valid.length; i++) {
+				var tex = new THREE.Texture(valid[i]);
+				tex.minFilter = THREE.LinearFilter;
+				tex.magFilter = THREE.LinearFilter;
+				tex.generateMipmaps = false; // saves GPU mem & upload time
+				tex.needsUpdate = true;
+				texCache.push(tex);
+			}
+
+			// ── Pre-build shared materials (1 per image) ──
+			var matCache = texCache.map(function (tex) {
+				return new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide }); // FrontSide only = half draw calls
+			});
+
+			// ── Shared geometry per row (same tileW/tileH = reuse geo) ──
+			var radius = 5.2, rows = 6, meshList = [], imgIdx = 0; // rows=6 instead of 7 = fewer tiles
+			var aspect = valid[0].naturalWidth / valid[0].naturalHeight || 0.8;
+			var geoCache = {}; // key = "w_h"
+
+			for (var ri = 0; ri < rows; ri++) {
+				var phi = Math.PI * (ri + 0.5) / rows;
+				var dPhi = Math.PI / rows;
+				var ringR = radius * Math.sin(phi);
+				var ringCirc = 2 * Math.PI * ringR;
+				var arcH = dPhi * radius;
+				var idealW = arcH * aspect;
+				var cols = Math.max(3, Math.round(ringCirc / idealW));
+				var tileW = (ringCirc / cols) * 1.05;
+				var tileH = arcH * 1.05;
+
+				// Reuse geometry if same size
+				var geoKey = tileW.toFixed(3) + '_' + tileH.toFixed(3);
+				if (!geoCache[geoKey]) geoCache[geoKey] = new THREE.PlaneGeometry(tileW, tileH);
+				var geo = geoCache[geoKey];
+
+				for (var ci = 0; ci < cols; ci++) {
+					var theta = (2 * Math.PI * ci) / cols;
+					var fx = radius * Math.sin(phi) * Math.cos(theta);
+					var fy = radius * Math.cos(phi);
+					var fz = radius * Math.sin(phi) * Math.sin(theta);
+
+					var matIdx = imgIdx % matCache.length; imgIdx++;
+					var mesh = new THREE.Mesh(geo, matCache[matIdx]);
+					mesh.lookAt(fx * 2, fy * 2, fz * 2);
+
+					// Fly-in start pos
+					var a3 = Math.random() * Math.PI * 2;
+					var el = (Math.random() - .5) * Math.PI;
+					var d = 20 + Math.random() * 15;
+					mesh.userData = {
+						fx: fx, fy: fy, fz: fz,
+						sx: Math.cos(el) * Math.cos(a3) * d,
+						sy: Math.sin(el) * d * 0.6,
+						sz: Math.cos(el) * Math.sin(a3) * d,
+						t: -(Math.random() * 0.9)
+					};
+					mesh.position.set(mesh.userData.sx, mesh.userData.sy, mesh.userData.sz);
+					sphereGroup.add(mesh);
+					meshList.push(mesh);
+				}
+			}
+
+			// Stars
+			var sp = [];
+			for (var i = 0; i < 1200; i++) sp.push((Math.random() - .5) * 120, (Math.random() - .5) * 120, (Math.random() - .5) * 120);
+			var sg = new THREE.BufferGeometry();
+			sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
+			threeStars = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xff66cc, size: 0.18 }));
+			threeScene.add(threeStars);
+
+			threeRunning = true;
+			setTimeout(function () { document.getElementById('btnContinue').classList.add('show'); }, 7000);
+
+			// Drag
+			var dragStart3 = null;
+			c3d.addEventListener('mousedown', function (e) { dragStart3 = { x: e.clientX, y: e.clientY }; });
+			c3d.addEventListener('touchstart', function (e) { dragStart3 = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }, { passive: true });
+			c3d.addEventListener('mousemove', function (e) {
+				if (!dragStart3 || !sphereGroup) return;
+				sphereGroup.rotation.y += (e.clientX - dragStart3.x) * 0.005;
+				sphereGroup.rotation.x += (e.clientY - dragStart3.y) * 0.005;
+				dragStart3 = { x: e.clientX, y: e.clientY };
+			});
+			c3d.addEventListener('touchmove', function (e) {
+				if (!dragStart3 || !sphereGroup) return;
+				sphereGroup.rotation.y += (e.touches[0].clientX - dragStart3.x) * 0.005;
+				sphereGroup.rotation.x += (e.touches[0].clientY - dragStart3.y) * 0.005;
+				dragStart3 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+			}, { passive: true });
+			window.addEventListener('mouseup', function () { dragStart3 = null; });
+			window.addEventListener('touchend', function () { dragStart3 = null; });
+
+			function threeLoop() {
+				if (!threeRunning) return;
+				requestAnimationFrame(threeLoop);
+				var allArrived = true;
+				for (var i = 0; i < meshList.length; i++) {
+					var mesh = meshList[i];
+					var u = mesh.userData;
+					if (u.t < 1) {
+						u.t = Math.min(1, u.t + 0.018);
+						allArrived = false;
+					}
+					if (u.t <= 0) continue;
+					var e = 1 - Math.pow(1 - Math.max(0, u.t), 3);
+					mesh.position.x = u.sx + (u.fx - u.sx) * e;
+					mesh.position.y = u.sy + (u.fy - u.sy) * e;
+					mesh.position.z = u.sz + (u.fz - u.sz) * e;
+				}
+				sphereGroup.rotation.y += 0.003;
+				sphereGroup.rotation.x += 0.0008;
+				if (threeStars) threeStars.rotation.y -= 0.0005;
+				threeRenderer.render(threeScene, threeCamera);
+			}
+			threeLoop();
+		}
+
+		function stopSphere() {
+			threeRunning = false;
+			document.getElementById('c3d').classList.remove('active');
+		}
+
+		// ═══════════════════════════════════════════════
+		// FLYING PHOTOS
+		// ═══════════════════════════════════════════════
+		var flyingPhotos = [], flyPhase = false;
+		function startFlying() {
+			stopSphere();
+			goPhase(5); flyPhase = true;
+			var btn = document.getElementById('btnContinue');
+			btn.style.display = ''; btn.classList.remove('show');
+			flyingPhotos = [];
+			var valid = validImgs();
+			for (var i = 0; i < valid.length; i++) {
+				var img = valid[i], w = Math.random() * 90 + 80, h = w * (img.naturalHeight / img.naturalWidth) || w * 1.3;
+				flyingPhotos.push({
+					img: img, x: Math.random() * W, y: H + h + Math.random() * 300, w: w, h: h,
+					vx: (Math.random() - .5) * 1.2, vy: -(Math.random() * 1.5 + 1.2),
+					rot: (Math.random() - .5) * .3, rotV: (Math.random() - .5) * .005,
+					alpha: 1, glowAnim: Math.random() * Math.PI * 2
+				});
+			}
+			setTimeout(function () { document.getElementById('letterIcon').classList.add('show'); }, 5000);
+		}
+
+		function updateFlying() {
+			if (!flyPhase) return;
+			for (var p of flyingPhotos) {
+				p.x += p.vx; p.y += p.vy; p.rot += p.rotV; p.glowAnim += .06;
+				if (p.y + p.h < -50) { p.y = H + p.h; p.x = Math.random() * W; }
+				var glow = .5 + .5 * Math.sin(p.glowAnim);
+				ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h / 2); ctx.rotate(p.rot);
+				ctx.shadowBlur = 14 + 10 * glow;
+				ctx.shadowColor = 'rgba(255,' + (80 + 60 * glow | 0) + ',160,' + (0.7 + 0.3 * glow) + ')';
+				ctx.strokeStyle = 'rgba(255,' + (100 + 80 * glow | 0) + ',180,' + (0.6 + 0.4 * glow) + ')';
+				ctx.lineWidth = 2 + glow * 2;
+				ctx.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h);
+				ctx.drawImage(p.img, -p.w / 2, -p.h / 2, p.w, p.h);
+				ctx.restore();
+			}
+		}
+
+		document.getElementById('btnContinue').addEventListener('click', function () {
+			document.getElementById('btnContinue').classList.remove('show');
+			document.getElementById('btnContinue').style.display = 'none';
+			startFlying();
+		});
+
+		// ═══════════════════════════════════════════════
+		// LETTER
+		// ═══════════════════════════════════════════════
+		var letterTyping = false;
+		document.getElementById('letterIcon').addEventListener('click', openLetter);
+		document.getElementById('letterClose').addEventListener('click', function () {
+			document.getElementById('letterModal').classList.remove('show');
+		});
+		function openLetter() {
+			document.getElementById('letterModal').classList.add('show');
+			if (!letterTyping) typeLetter();
+		}
+		function typeLetter() {
+			letterTyping = true;
+			var el = document.getElementById('letterContent');
+			var i = 0;
+			el.innerHTML = '<span class="cursor"></span>';
+			function type() {
+				if (i >= LETTER_TEXT.length) { letterTyping = false; return; }
+				var ch = LETTER_TEXT[i++];
+				el.innerHTML = LETTER_TEXT.substring(0, i).replace(/\n/g, '<br>') + '<span class="cursor"></span>';
+				setTimeout(type, ch === '\n' ? 400 : ch === ' ' ? 60 : Math.random() * 55 + 25);
+			}
+			setTimeout(type, 600);
+		}
+
+		// ═══════════════════════════════════════════════
+		// MAIN LOOP
+		// ═══════════════════════════════════════════════
+		function loop() {
+			requestAnimationFrame(loop);
+			ctx.fillStyle = 'rgba(0,0,0,.16)';
+			ctx.fillRect(0, 0, W, H);
+			drawGlow(.8 + .2 * Math.sin(Date.now() * .0008));
+			updateBg(); drawBg(); drawStars();
+			checkHold();
+			updateParticleText();
+			updateAssemble();
+			updateFlying();
+		}
+		loop();
+	</script>
+
+</body>
+
+</html>

@@ -538,8 +538,8 @@
 				const ry2 = wy * cosX - rz1 * sinX, rz2 = wy * sinX + rz1 * cosX;
 				const FOV = 860, sc = FOV / (FOV + rz2 + 320);
 				const sx = CX + rx1 * sc, sy = CY + ry2 * sc;
-				const tw = 2 * t.R * Math.sin(t.phi) * Math.sin(t.dTheta / 2) * sc * e * 1.22;
-				const th = 2 * t.R * Math.sin(t.dPhi / 2) * sc * e * 1.22;
+				const tw = 2 * t.R * Math.sin(t.phi) * Math.sin(t.dTheta / 2) * sc * e * 1.45;
+				const th = 2 * t.R * Math.sin(t.dPhi / 2) * sc * e * 1.45;
 				const isFront = rz2 < 30;
 				const alpha = isFront ? Math.max(0, Math.min(1, e)) : Math.max(0, (.22 - rz2 / t.R * .14) * e);
 				if (tw < 2 || th < 2 || alpha < .02) continue;
