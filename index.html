@@ -421,7 +421,7 @@
 		const YOUTUBE_VIDEO_ID = '9UcQ7ddVjoc';
 
 		// ← Thay bằng link MP3 trực tiếp nếu có, để '' thì dùng YouTube
-		const MP3_URL = './noi_nay_co_anh.mp3';
+		const MP3_URL = './noi_nay_co_anh_2.mp3';
 
 		const PHOTOS = [
 			'https://scontent.fhan9-1.fna.fbcdn.net/v/t39.30808-6/621597058_2748083755530507_8778718884176390901_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeGO1fVB1rhwGive3ThRnTdGR4fy8hIYSF9Hh_LyEhhIX_b339wYhh_E6_Aad5ar8k0XWyv1hrNOlXHCXA5nCcnJ&_nc_ohc=NenWJXVhb4sQ7kNvwEyJIuG&_nc_oc=AdnHcOKwvjslelZR1lTvp_VW5CHjoC9wabr2Y_XpsBzcE0IXlfPz5vIbyHZXGlXhERA&_nc_zt=23&_nc_ht=scontent.fhan9-1.fna&_nc_gid=-O1xOp3-_QTcew-6WjWPgQ&_nc_ss=8&oh=00_AfxpCWVOS3Ssr7-pjfw0AysHF0nCX4bc8XkGBG-4NaHoTg&oe=69AF9627',
@@ -489,9 +489,14 @@
 				audioEl = new Audio('./noi_nay_co_anh.mp3');
 				audioEl.loop = true;
 				audioEl.volume = 0.7;
-				audioEl.currentTime = 30;
+				audioEl.addEventListener('canplaythrough', () => {
+					audioEl.currentTime = 20;
+					audioEl.play().catch(() => { });
+				}, { once: true });
+				audioEl.load();
+			} else {
+				audioEl.play().catch(() => { });
 			}
-			audioEl.play().catch(() => { });
 		}
 
 		/* ══ LOADING → HOLD ══ */
