@@ -490,7 +490,6 @@
 				audioEl.loop = true;
 				audioEl.volume = 0.7;
 				audioEl.addEventListener('canplaythrough', () => {
-					audioEl.currentTime = 20;
 					audioEl.play().catch(() => { });
 				}, { once: true });
 				audioEl.load();
