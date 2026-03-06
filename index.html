@@ -467,18 +467,7 @@
 		/* ══ AUDIO ══ */
 		let audioEl = null;
 		function playMusic() {
-			if (!audioEl) {
-				audioEl = new Audio(MP3_URL);
-				audioEl.loop = true;
-				audioEl.volume = 0.7;
-			}
-			const playPromise = audioEl.play();
-			if (playPromise !== undefined) {
-				playPromise.catch(() => {
-					// iOS fallback: thử lại sau 100ms
-					setTimeout(() => audioEl.play().catch(() => { }), 100);
-				});
-			}
+			if (audioEl) audioEl.play().catch(() => { });
 		}
 
 		/* ══ LOADING → HOLD ══ */
@@ -488,7 +477,19 @@
 		const holdBtn = document.getElementById('holdBtn'), progCirc = document.getElementById('progressCircle');
 		const DASHLEN = 263, HOLD_MS = 2200;
 		let holding = false, holdStart = 0, unlocked = false;
-		function startHold() { if (unlocked) return; holding = true; holdStart = Date.now(); holdBtn.classList.add('pressing'); }
+		function startHold() {
+			if (unlocked) return;
+			// iOS: unlock audio context ngay khi có touch
+			if (!audioEl) {
+				audioEl = new Audio(MP3_URL);
+				audioEl.loop = true;
+				audioEl.volume = 0.7;
+				audioEl.load();
+			}
+			holding = true;
+			holdStart = Date.now();
+			holdBtn.classList.add('pressing');
+		}
 		function endHold() { if (!holding) return; holding = false; holdBtn.classList.remove('pressing'); if (!unlocked) progCirc.style.strokeDashoffset = DASHLEN; }
 		function checkHold() { if (!holding || unlocked) return; const t = Math.min(1, (Date.now() - holdStart) / HOLD_MS); progCirc.style.strokeDashoffset = DASHLEN * (1 - t); if (t >= 1) triggerUnlock(); }
 		holdBtn.addEventListener('mousedown', startHold);
