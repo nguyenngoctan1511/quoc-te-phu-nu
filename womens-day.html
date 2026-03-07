@@ -481,8 +481,12 @@
 		function playMusic() { if (audioEl) audioEl.play().catch(function () { }); }
 
 		var loadPct = 0, loadBar = document.getElementById('loadBar');
-		var loadTimer = setInterval(function () { loadPct += 2; loadBar.style.width = loadPct + '%'; if (loadPct >= 100) { clearInterval(loadTimer); setTimeout(function () { goPhase(1); }, 300); } }, 60);
-
+		document.fonts.ready.then(function () {
+			var loadTimer = setInterval(function () {
+				loadPct += 2; loadBar.style.width = loadPct + '%';
+				if (loadPct >= 100) { clearInterval(loadTimer); setTimeout(function () { goPhase(1); }, 300); }
+			}, 60);
+		});
 		var holdBtn = document.getElementById('holdBtn'), progCirc = document.getElementById('progressCircle');
 		var DASHLEN = 263, HOLD_MS = 2200, holding = false, holdStart = 0, unlocked = false;
 		function startHold() { if (unlocked) return; if (!audioEl) { audioEl = new Audio(MP3_URL); audioEl.loop = true; audioEl.volume = 0.7; audioEl.load(); } holding = true; holdStart = Date.now(); holdBtn.classList.add('pressing'); }
