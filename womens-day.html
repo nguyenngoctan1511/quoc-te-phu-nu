@@ -262,8 +262,8 @@
 
 		#letterIcon {
 			position: fixed;
+			right: 24px;
 			bottom: calc(28px + env(safe-area-inset-bottom));
-			right: calc(20px + env(safe-area-inset-right));
 			z-index: 40;
 			width: 60px;
 			height: 60px;
@@ -669,7 +669,7 @@
 
 			// Toàn bộ vẽ ở gốc toạ độ rồi xoay tổng thể -28° (như emoji)
 			fctx.save();
-			fctx.translate(S * 0.52, S * 0.54);
+			fctx.translate(S * 0.52, S * 0.52);
 			fctx.rotate(-0.48); // ~-28 deg
 
 			var U = S * 0.01; // đơn vị cơ bản
@@ -907,7 +907,7 @@
 			if (!res.pixels.length) { if (onDone) onDone(); return; }
 
 			var offX = CX - res.tw / 2;
-			var offY = CY - res.th / 2;
+			var offY = CY - res.th / 2 - H * 0.05;
 
 			var parts = res.pixels.map(function (px) {
 				var tx = offX + px.x;
