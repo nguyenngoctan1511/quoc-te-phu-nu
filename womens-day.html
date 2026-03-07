@@ -239,7 +239,7 @@
 			cursor: pointer;
 			opacity: 0;
 			pointer-events: none;
-			transition: opacity .8s ease, color .2s, transform .15s;
+			transition: opacity .7s ease, color .2s, transform .15s;
 			z-index: 30;
 			text-shadow: 0 0 12px rgba(255, 150, 200, .6);
 			white-space: nowrap;
@@ -434,7 +434,7 @@
 			'./file/12.jpg', './file/13.jpg', './file/14.jpg', './file/15.jpg',
 			'./file/16.jpg', './file/9.jpg', './file/18.jpg', './file/19.jpg',
 		];
-		var LETTER_TEXT = 'Chúc em một ngày 8/3 💐✨ thật ý nghĩa bên đó nhé! 🌸🇯🇵\nAnh biết làm việc ở Nhật không hề dễ dàng, nhưng nhìn cách em nỗ lực mỗi ngày, anh thực sự rất ngưỡng mộ. ✨\nChúc cô gái nơi "phương xa" luôn rạng rỡ, bình an và sớm đạt được những dự định của mình.\nĐừng làm việc quá sức, nhớ dành thời gian yêu chiều bản thân một chút nhé! 🎀 Gặt hái thật nhiều thành công, xinh đẹp và luôn nở nụ cười thật tươi nha! 🍀\n\n— From: Từ một người giấu tên tại Việt Nam! 🇻🇳❤️';
+		var LETTER_TEXT = 'Chúc em một ngày 8/3 💐✨ thật ý nghĩa bên đó nhé! 🌸🇯🇵\nAnh biết làm việc ở Nhật không hề dễ dàng, nhưng nhìn cách em nỗ lực mỗi ngày, anh thực sự rất ngưỡng mộ. ✨\nChúc cô gái nơi "phương xa" luôn rạng rỡ, bình an và sớm đạt được những dự định của mình.\nĐừng làm việc quá sức, nhớ dành thời gian yêu chiều bản thân một chút nhé! 🎀 Gặt hái thật nhiều thành công, xinh đẹp và luôn nở nụ cười thật tươi nha! 🍀\n\n— From: Anh IT quèn ở Việt Nam! 🇻🇳❤️';
 
 		var c2d = document.getElementById('c2d');
 		var ctx = c2d.getContext('2d');
@@ -442,7 +442,6 @@
 
 		function resize() {
 			var dpr = window.devicePixelRatio || 1;
-			// Dùng visualViewport nếu có để lấy chiều cao thực (không bị che bởi browser UI)
 			W = (window.visualViewport ? window.visualViewport.width : window.innerWidth);
 			H = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
 			CX = W / 2; CY = H / 2;
@@ -463,7 +462,6 @@
 		window.addEventListener('resize', onResize);
 		if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
 
-		// Chặn scroll/bounce iOS
 		document.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
 
 		var PAL = ['rgba(255,30,80,', 'rgba(255,60,120,', 'rgba(255,0,60,', 'rgba(220,20,80,', 'rgba(255,100,140,', 'rgba(255,180,200,'];
@@ -496,11 +494,548 @@
 		holdBtn.addEventListener('touchstart', function (e) { e.preventDefault(); startHold(); }, { passive: false });
 		window.addEventListener('mouseup', endHold); window.addEventListener('touchend', endHold); window.addEventListener('touchcancel', endHold);
 
-		function triggerUnlock() { unlocked = true; playMusic(); setTimeout(function () { goPhase(2); startParticleText(); setTimeout(function () { particleTextState = null; startAssemble(); }, 8500); }, 1000); }
+		// ====== FIREWORKS SYSTEM (optimized: batch draw by color) ======
+		var fireworks = [];
+		var rockets = [];
+		var fireworkActive = false;
+
+		var FW_PALETTES = [
+			['#ff2266', '#ff66aa', '#ff99cc', '#ffccee', '#ffffff'],
+			['#ffdd00', '#ff8800', '#ff4400', '#ffaa44', '#ffffaa'],
+			['#44ddff', '#ff44cc', '#ffaaff', '#aaffdd', '#ffffff'],
+			['#ff44bb', '#ff0066', '#ffaacc', '#cc0055', '#ff88cc'],
+			['#00ffaa', '#ff66dd', '#ffff00', '#ff4499', '#aaffff']
+		];
+
+		function launchFirework(x, y, palette) {
+			var cols = palette || FW_PALETTES[0];
+			var count = 80 + Math.floor(Math.random() * 40);
+			for (var i = 0; i < count; i++) {
+				var ang = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.25;
+				var spd = Math.random() * 4.5 + 2;
+				fireworks.push({
+					x: x, y: y,
+					px: x, py: y,   // prev pos for trail (1-segment only, no array)
+					vx: Math.cos(ang) * spd,
+					vy: Math.sin(ang) * spd,
+					alpha: 1,
+					col: cols[Math.floor(Math.random() * cols.length)],
+					r: Math.random() * 2 + 0.8,
+					gravity: 0.06 + Math.random() * 0.03,
+					fade: 0.013 + Math.random() * 0.009
+				});
+			}
+		}
+
+		function launchRocket(x) {
+			rockets.push({
+				x: x || CX + (Math.random() - 0.5) * W * 0.5,
+				y: H,
+				vy: -(Math.random() * 9 + 13),
+				vx: (Math.random() - 0.5) * 1.5,
+				targetY: H * 0.12 + Math.random() * H * 0.3,
+				px: 0, py: H
+			});
+		}
+
+		function updateFireworks() {
+			var i, p, r;
+
+			// --- rockets ---
+			// batch: single style for all rocket trails
+			ctx.save();
+			ctx.shadowBlur = 0;
+			for (i = rockets.length - 1; i >= 0; i--) {
+				r = rockets[i];
+				r.px = r.x; r.py = r.y;
+				r.x += r.vx;
+				r.y += r.vy;
+				r.vy += 0.22;
+				// trail line
+				ctx.globalAlpha = 0.55;
+				ctx.strokeStyle = '#ffccee';
+				ctx.lineWidth = 1.5;
+				ctx.beginPath();
+				ctx.moveTo(r.px, r.py);
+				ctx.lineTo(r.x, r.y);
+				ctx.stroke();
+				// head dot
+				ctx.globalAlpha = 1;
+				ctx.fillStyle = '#fff';
+				ctx.beginPath();
+				ctx.arc(r.x, r.y, 2.5, 0, Math.PI * 2);
+				ctx.fill();
+
+				if (r.y <= r.targetY || r.vy >= 0) {
+					launchFirework(r.x, r.y, FW_PALETTES[Math.floor(Math.random() * FW_PALETTES.length)]);
+					rockets.splice(i, 1);
+				}
+			}
+			ctx.restore();
+
+			// --- firework particles: batch by color ---
+			// Step 1: update physics
+			for (i = fireworks.length - 1; i >= 0; i--) {
+				p = fireworks[i];
+				p.px = p.x; p.py = p.y;
+				p.x += p.vx;
+				p.y += p.vy;
+				p.vx *= 0.955;
+				p.vy *= 0.955;
+				p.vy += p.gravity;
+				p.alpha -= p.fade;
+				if (p.alpha <= 0) { fireworks.splice(i, 1); }
+			}
+
+			if (!fireworks.length) return;
+
+			// Step 2: group by color
+			var byCol = {};
+			for (i = 0; i < fireworks.length; i++) {
+				p = fireworks[i];
+				if (!byCol[p.col]) byCol[p.col] = [];
+				byCol[p.col].push(p);
+			}
+
+			// Step 3: draw each color group in one pass (no shadowBlur - use additive glow via globalCompositeOperation)
+			ctx.save();
+			ctx.globalCompositeOperation = 'lighter';
+			for (var col in byCol) {
+				var group = byCol[col];
+				ctx.strokeStyle = col;
+				ctx.fillStyle = col;
+				// trails
+				ctx.lineWidth = 1;
+				ctx.beginPath();
+				for (i = 0; i < group.length; i++) {
+					p = group[i];
+					if (p.alpha <= 0) continue;
+					ctx.globalAlpha = p.alpha * 0.25;
+					ctx.moveTo(p.px, p.py);
+					ctx.lineTo(p.x, p.y);
+				}
+				ctx.stroke();
+				// dots
+				for (i = 0; i < group.length; i++) {
+					p = group[i];
+					if (p.alpha <= 0) continue;
+					ctx.globalAlpha = p.alpha * 0.9;
+					ctx.beginPath();
+					ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+					ctx.fill();
+				}
+			}
+			ctx.restore();
+		}
+
+		function startFireworks(duration, onDone) {
+			fireworkActive = true;
+			rockets = []; fireworks = [];
+			// Nhiều đợt hơn, cuối có grand finale
+			var burstTimes = [0, 180, 420, 700, 1050, 1450, 1900, 2400, 2950, 3200, 3450];
+			var endTime = Date.now() + (duration || 4500);
+			burstTimes.forEach(function (delay) {
+				setTimeout(function () {
+					if (Date.now() <= endTime + 200) {
+						var n = (delay >= 3200) ? 5 : 2 + Math.floor(Math.random() * 2);
+						for (var i = 0; i < n; i++) {
+							(function (ii) { setTimeout(function () { launchRocket(); }, ii * 130); })(i);
+						}
+					}
+				}, delay);
+			});
+			// Chờ tất cả particles tắt hẳn rồi mới gọi onDone
+			setTimeout(function () {
+				fireworkActive = false;
+				var check = setInterval(function () {
+					if (fireworks.length === 0 && rockets.length === 0) {
+						clearInterval(check);
+						if (onDone) onDone();
+					}
+				}, 80);
+			}, duration + 800);
+		}
+
+		// ====== FLOWER BOUQUET PARTICLE SYSTEM ======
+		var flowerState = null;
+
+		// Vẽ bó hoa theo đúng emoji 💐: nghiêng ~-30°, gói giấy hình nón, hoa đa dạng
+		function buildFlowerBouquet() {
+			var fc = document.createElement('canvas');
+			var fctx = fc.getContext('2d');
+			var S = Math.max(W, H) * 0.8;
+			S = Math.min(S, 700);
+			fc.width = S; fc.height = S;
+			fctx.clearRect(0, 0, S, S);
+
+			// Toàn bộ vẽ ở gốc toạ độ rồi xoay tổng thể -28° (như emoji)
+			fctx.save();
+			fctx.translate(S * 0.52, S * 0.54);
+			fctx.rotate(-0.48); // ~-28 deg
+
+			var U = S * 0.01; // đơn vị cơ bản
+
+			// ── GÓI GIẤY HÌNH NÓN ──
+			// Lớp giấy ngoài (hồng nhạt)
+			fctx.save();
+			fctx.beginPath();
+			fctx.moveTo(-18 * U, 8 * U);
+			fctx.lineTo(0, 38 * U);
+			fctx.lineTo(18 * U, 8 * U);
+			fctx.closePath();
+			var wrapGrad = fctx.createLinearGradient(-18 * U, 8 * U, 18 * U, 38 * U);
+			wrapGrad.addColorStop(0, '#ffcce0');
+			wrapGrad.addColorStop(0.5, '#ffaac8');
+			wrapGrad.addColorStop(1, '#ff88b0');
+			fctx.fillStyle = wrapGrad;
+			fctx.fill();
+			// viền giấy
+			fctx.strokeStyle = '#ff66a0';
+			fctx.lineWidth = U * 0.8;
+			fctx.stroke();
+			fctx.restore();
+
+			// Nếp gấp giấy (tam giác nhỏ trái)
+			fctx.save();
+			fctx.beginPath();
+			fctx.moveTo(-18 * U, 8 * U);
+			fctx.lineTo(-6 * U, 22 * U);
+			fctx.lineTo(0, 8 * U);
+			fctx.closePath();
+			fctx.fillStyle = '#ff99bb';
+			fctx.fill();
+			fctx.restore();
+
+			// Nếp gấp giấy (tam giác nhỏ phải)
+			fctx.save();
+			fctx.beginPath();
+			fctx.moveTo(18 * U, 8 * U);
+			fctx.lineTo(6 * U, 22 * U);
+			fctx.lineTo(0, 8 * U);
+			fctx.closePath();
+			fctx.fillStyle = '#ff88b4';
+			fctx.fill();
+			fctx.restore();
+
+			// Dải nơ / ruy băng ở miệng gói
+			fctx.save();
+			fctx.strokeStyle = '#ff3388';
+			fctx.lineWidth = U * 1.8;
+			fctx.lineCap = 'round';
+			// cung trái
+			fctx.beginPath();
+			fctx.moveTo(-2 * U, 7 * U);
+			fctx.bezierCurveTo(-14 * U, -2 * U, -18 * U, -10 * U, -8 * U, -8 * U);
+			fctx.stroke();
+			// cung phải
+			fctx.beginPath();
+			fctx.moveTo(2 * U, 7 * U);
+			fctx.bezierCurveTo(14 * U, -2 * U, 18 * U, -10 * U, 8 * U, -8 * U);
+			fctx.stroke();
+			fctx.restore();
+
+			// ── CUỐNG / LÁ nhô ra từ miệng gói ──
+			var leafDefs = [
+				{ x1: -8 * U, y1: 5 * U, cx1: -22 * U, cy1: -18 * U, cx2: -28 * U, cy2: -32 * U, x2: -18 * U, y2: -38 * U, col: '#22bb44' },
+				{ x1: 8 * U, y1: 5 * U, cx1: 20 * U, cy1: -16 * U, cx2: 26 * U, cy2: -30 * U, x2: 16 * U, y2: -36 * U, col: '#33cc55' },
+				{ x1: -2 * U, y1: 4 * U, cx1: -4 * U, cy1: -14 * U, cx2: 2 * U, cy2: -28 * U, x2: 0, y2: -34 * U, col: '#28b83e' },
+			];
+			leafDefs.forEach(function (l) {
+				fctx.save();
+				fctx.strokeStyle = l.col;
+				fctx.lineWidth = U * 1.6;
+				fctx.lineCap = 'round';
+				fctx.beginPath();
+				fctx.moveTo(l.x1, l.y1);
+				fctx.bezierCurveTo(l.cx1, l.cy1, l.cx2, l.cy2, l.x2, l.y2);
+				fctx.stroke();
+				fctx.restore();
+			});
+
+			// Lá xanh lớn bên trái
+			fctx.save();
+			fctx.translate(-20 * U, -12 * U);
+			fctx.rotate(0.4);
+			fctx.fillStyle = '#33cc55';
+			fctx.beginPath();
+			fctx.moveTo(0, 0);
+			fctx.bezierCurveTo(-10 * U, -16 * U, 2 * U, -22 * U, 8 * U, -8 * U);
+			fctx.bezierCurveTo(4 * U, -2 * U, 2 * U, 2 * U, 0, 0);
+			fctx.fill();
+			fctx.restore();
+
+			// Lá xanh bên phải
+			fctx.save();
+			fctx.translate(18 * U, -10 * U);
+			fctx.rotate(-0.3);
+			fctx.fillStyle = '#2db84a';
+			fctx.beginPath();
+			fctx.moveTo(0, 0);
+			fctx.bezierCurveTo(10 * U, -14 * U, 0 * U, -22 * U, -6 * U, -10 * U);
+			fctx.bezierCurveTo(-4 * U, -3 * U, -2 * U, 2 * U, 0, 0);
+			fctx.fill();
+			fctx.restore();
+
+			// ── HÀM VẼ HOA helper ──
+			function drawRose(fx, fy, r, layers, baseCol, darkCol) {
+				// Cánh hoa dạng xoắn (rose-like)
+				var n = 5;
+				for (var layer = 0; layer < layers; layer++) {
+					var lr = r * (1 - layer * 0.18);
+					var rot = layer * 0.6;
+					var alpha = 0.75 + layer * 0.08;
+					fctx.save();
+					fctx.translate(fx, fy);
+					fctx.rotate(rot);
+					fctx.globalAlpha = alpha;
+					for (var k = 0; k < n; k++) {
+						var a = (Math.PI * 2 * k) / n;
+						var px2 = Math.cos(a) * lr * 0.7;
+						var py2 = Math.sin(a) * lr * 0.7;
+						var pg = fctx.createRadialGradient(px2, py2, 0, px2, py2, lr * 0.8);
+						pg.addColorStop(0, baseCol);
+						pg.addColorStop(1, darkCol);
+						fctx.fillStyle = pg;
+						fctx.beginPath();
+						fctx.ellipse(px2, py2, lr * 0.52, lr * 0.35, a, 0, Math.PI * 2);
+						fctx.fill();
+					}
+					fctx.restore();
+				}
+				// tâm hoa
+				var cg = fctx.createRadialGradient(fx, fy, 0, fx, fy, r * 0.28);
+				cg.addColorStop(0, '#ffe066'); cg.addColorStop(1, '#ffaa00');
+				fctx.save(); fctx.fillStyle = cg; fctx.globalAlpha = 1;
+				fctx.beginPath(); fctx.arc(fx, fy, r * 0.28, 0, Math.PI * 2); fctx.fill();
+				fctx.restore();
+			}
+
+			function drawDaisy(fx, fy, r, n, petalCol, midCol) {
+				fctx.save(); fctx.translate(fx, fy);
+				for (var k = 0; k < n; k++) {
+					var a = (Math.PI * 2 * k) / n;
+					fctx.save(); fctx.rotate(a);
+					fctx.fillStyle = petalCol; fctx.globalAlpha = 0.88;
+					fctx.beginPath();
+					fctx.ellipse(0, -r * 0.65, r * 0.22, r * 0.42, 0, 0, Math.PI * 2);
+					fctx.fill(); fctx.restore();
+				}
+				fctx.fillStyle = midCol; fctx.globalAlpha = 1;
+				fctx.beginPath(); fctx.arc(0, 0, r * 0.3, 0, Math.PI * 2); fctx.fill();
+				fctx.restore();
+			}
+
+			function drawTulip(fx, fy, r, col1, col2) {
+				fctx.save(); fctx.translate(fx, fy);
+				// 3 cánh tulip
+				[[-0.3, col1], [0, col2], [0.3, col1]].forEach(function (d) {
+					fctx.save(); fctx.rotate(d[0]);
+					var g = fctx.createLinearGradient(0, 0, 0, -r * 1.1);
+					g.addColorStop(0, d[1]); g.addColorStop(1, 'rgba(255,255,255,0.3)');
+					fctx.fillStyle = g; fctx.globalAlpha = 0.9;
+					fctx.beginPath();
+					fctx.moveTo(0, 0);
+					fctx.bezierCurveTo(-r * 0.5, -r * 0.5, -r * 0.4, -r * 1.0, 0, -r * 1.15);
+					fctx.bezierCurveTo(r * 0.4, -r * 1.0, r * 0.5, -r * 0.5, 0, 0);
+					fctx.fill(); fctx.restore();
+				});
+				fctx.restore();
+			}
+
+			// ── BỐ CỤC HOA (trải từ dưới lên, phân tán như 💐) ──
+			var R = U * 11;
+
+			// Hàng dưới (sát miệng gói)
+			drawRose(-16 * U, -16 * U, R * 1.05, 2, '#ff4488', '#cc0044');
+			drawRose(14 * U, -14 * U, R * 0.95, 2, '#ff6622', '#cc3300');
+			drawTulip(0 * U, -20 * U, R * 0.9, '#ff2255', '#dd0033');
+
+			// Hàng giữa
+			drawRose(-24 * U, -28 * U, R * 0.9, 2, '#ff66aa', '#ee0066');
+			drawDaisy(22 * U, -26 * U, R * 0.85, 8, '#fffde7', '#fff176');
+			drawRose(2 * U, -34 * U, R * 1.1, 3, '#ff2266', '#aa0033');
+			drawTulip(-10 * U, -38 * U, R * 0.8, '#ff44cc', '#bb0099');
+
+			// Hàng trên
+			drawDaisy(-20 * U, -44 * U, R * 0.75, 7, '#ff99cc', '#ff3399');
+			drawRose(18 * U, -42 * U, R * 0.85, 2, '#ff8833', '#dd4400');
+			drawRose(-2 * U, -50 * U, R * 0.95, 2, '#ff55aa', '#cc0077');
+			drawTulip(10 * U, -52 * U, R * 0.7, '#ffaaff', '#cc44cc');
+
+			// Đỉnh (loe rộng như 💐)
+			drawDaisy(-28 * U, -54 * U, R * 0.65, 6, '#ffffff', '#ffeeaa');
+			drawRose(26 * U, -52 * U, R * 0.7, 2, '#ff3377', '#bb0055');
+			drawDaisy(0 * U, -62 * U, R * 0.6, 8, '#ffccee', '#ff88bb');
+
+			fctx.restore(); // kết thúc rotate tổng thể
+
+			// === Sample pixels - quantize về ~16 màu để batch hiệu quả ===
+			var data = fctx.getImageData(0, 0, S, S).data;
+			var px = [];
+			var step = Math.max(2, Math.round(S / 220));
+			// Bảng màu đại diện (quantize thủ công)
+			var QPAL = [
+				[255, 20, 100], [255, 60, 140], [255, 100, 170], [255, 150, 200], [255, 200, 220],
+				[220, 0, 60], [180, 0, 80], [255, 80, 30], [220, 60, 0], [255, 200, 50],
+				[255, 240, 100], [50, 180, 60], [40, 150, 50], [30, 130, 40], [255, 255, 255], [200, 100, 200]
+			];
+			function quantize(r, g, b) {
+				var best = 0, bd = 1e9;
+				for (var q = 0; q < QPAL.length; q++) {
+					var dr = r - QPAL[q][0], dg = g - QPAL[q][1], db = b - QPAL[q][2];
+					var d = dr * dr + dg * dg + db * db;
+					if (d < bd) { bd = d; best = q; }
+				}
+				var c = QPAL[best];
+				return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')';
+			}
+			for (var fy2 = 0; fy2 < S; fy2 += step) {
+				for (var fx2 = 0; fx2 < S; fx2 += step) {
+					var idx = (fy2 * S + fx2) * 4;
+					if (data[idx + 3] > 50) {
+						px.push({
+							x: fx2, y: fy2,
+							col: quantize(data[idx], data[idx + 1], data[idx + 2])
+						});
+					}
+				}
+			}
+			return { pixels: px, tw: S, th: S };
+		}
+
+		function startFlowerBouquet(onDone) {
+			var res = buildFlowerBouquet();
+			if (!res.pixels.length) { if (onDone) onDone(); return; }
+
+			var offX = CX - res.tw / 2;
+			var offY = CY - res.th / 2;
+
+			var parts = res.pixels.map(function (px) {
+				var tx = offX + px.x;
+				var ty = offY + px.y;
+				// spawn from center/bottom with spread
+				var sx, sy;
+				var spawnType = Math.random();
+				if (spawnType < 0.5) {
+					// from below center
+					var ang = Math.random() * Math.PI * 2;
+					var d = Math.random() * Math.min(W, H) * 0.2;
+					sx = CX + Math.cos(ang) * d;
+					sy = H + 60 + Math.random() * 100;
+				} else if (spawnType < 0.75) {
+					// from sides
+					sx = Math.random() < 0.5 ? -60 : W + 60;
+					sy = Math.random() * H;
+				} else {
+					// from around screen edges
+					var edge = Math.floor(Math.random() * 4);
+					if (edge === 0) { sx = Math.random() * W; sy = -60; }
+					else if (edge === 1) { sx = W + 60; sy = Math.random() * H; }
+					else if (edge === 2) { sx = Math.random() * W; sy = H + 60; }
+					else { sx = -60; sy = Math.random() * H; }
+				}
+				return {
+					tx: tx, ty: ty,
+					sx: sx, sy: sy,
+					cx: sx, cy: sy,
+					t: -Math.random() * 0.7,
+					col: px.col,
+					r: Math.random() * 1.8 + 0.9,
+					alpha: 0
+				};
+			});
+
+			flowerState = {
+				parts: parts,
+				globalAlpha: 1,
+				startTime: Date.now(),
+				assembled: false,
+				assembledTime: null,
+				onDone: onDone || null
+			};
+		}
+
+		function updateFlowerBouquet() {
+			if (!flowerState) return;
+			var parts = flowerState.parts;
+			var i, p;
+
+			// Step 1: update physics
+			var allAssembled = true;
+			for (i = 0; i < parts.length; i++) {
+				p = parts[i];
+				p.t = Math.min(1, p.t + 0.026);
+				if (p.t < 0) { allAssembled = false; continue; }
+				var e = 1 - Math.pow(1 - Math.max(0, p.t), 3);
+				p.cx = p.sx + (p.tx - p.sx) * e;
+				p.cy = p.sy + (p.ty - p.sy) * e;
+				if (p.t < 1) allAssembled = false;
+				p.alpha = Math.min(1, p.t * 2) * flowerState.globalAlpha;
+			}
+
+			// Step 2: batch draw by color
+			var byCol = {};
+			for (i = 0; i < parts.length; i++) {
+				p = parts[i];
+				if (p.alpha <= 0) continue;
+				if (!byCol[p.col]) byCol[p.col] = [];
+				byCol[p.col].push(p);
+			}
+			ctx.save();
+			ctx.shadowBlur = 0;
+			for (var col in byCol) {
+				var group = byCol[col];
+				ctx.fillStyle = col;
+				ctx.globalAlpha = 1;
+				ctx.beginPath();
+				for (i = 0; i < group.length; i++) {
+					p = group[i];
+					// approximate alpha by skipping near-invisible
+					if (p.alpha < 0.05) continue;
+					ctx.moveTo(p.cx + p.r, p.cy);
+					ctx.arc(p.cx, p.cy, p.r, 0, Math.PI * 2);
+				}
+				ctx.globalAlpha = flowerState.globalAlpha;
+				ctx.fill();
+			}
+			ctx.restore();
+
+			// Hold & fade logic
+			if (allAssembled && !flowerState.assembled) {
+				flowerState.assembled = true;
+				flowerState.assembledTime = Date.now();
+			}
+			if (flowerState.assembled) {
+				var holdElapsed = (Date.now() - flowerState.assembledTime) / 1000;
+				if (holdElapsed > 3.5) {
+					flowerState.globalAlpha = Math.max(0, 1 - (holdElapsed - 3.5) / 1.5);
+					if (flowerState.globalAlpha <= 0) {
+						var cb = flowerState.onDone;
+						flowerState = null;
+						if (cb) cb();
+						return;
+					}
+				}
+			}
+		}
+
+		function triggerUnlock() {
+			unlocked = true;
+			playMusic();
+			document.getElementById('phaseHold').classList.remove('active');
+			// Pháo hoa xong hẳn mới hiện bó hoa
+			startFireworks(4000, function () {
+				startFlowerBouquet(function () {
+					goPhase(2);
+					startParticleText();
+					setTimeout(function () { startTextExplode(); }, 7000);
+				});
+			});
+		}
 
 		var LINES = ['Chúc Mừng', 'Ngày Quốc Tế', 'Phụ Nữ 🌸'];
 		var particleTextState = null;
-		function sampleTextPixels(text, fontSize, color) { var tc = document.getElementById('textCanvas'), tctx = tc.getContext('2d'); tc.width = Math.min(W, 700); tc.height = fontSize * 1.7; tctx.clearRect(0, 0, tc.width, tc.height); tctx.font = '700 ' + fontSize + 'px \'Dancing Script\',cursive'; tctx.fillStyle = color; tctx.textAlign = 'center'; tctx.textBaseline = 'middle'; tctx.fillText(text, tc.width / 2, tc.height / 2); var data = tctx.getImageData(0, 0, tc.width, tc.height).data, px = []; for (var y = 0; y < tc.height; y += 4)for (var x = 0; x < tc.width; x += 4)if (data[(y * tc.width + x) * 4 + 3] > 80) px.push({ x: x, y: y }); return { pixels: px, tw: tc.width, th: tc.height }; }
+		function sampleTextPixels(text, fontSize, color) { var tc = document.getElementById('textCanvas'), tctx = tc.getContext('2d'); tc.width = Math.min(W, 700); tc.height = fontSize * 1.7; tctx.clearRect(0, 0, tc.width, tc.height); tctx.font = '700 ' + fontSize + 'px \'Dancing Script\',cursive'; tctx.fillStyle = color; tctx.textAlign = 'center'; tctx.textBaseline = 'middle'; tctx.fillText(text, tc.width / 2, tc.height / 2); var data = tctx.getImageData(0, 0, tc.width, tc.height).data, px = []; for (var y = 0; y < tc.height; y += 3)for (var x = 0; x < tc.width; x += 3)if (data[(y * tc.width + x) * 4 + 3] > 80) px.push({ x: x, y: y }); return { pixels: px, tw: tc.width, th: tc.height }; }
 		function startParticleText() { particleTextState = { lines: [], done: false }; scheduleNextLine(0); }
 		function scheduleNextLine(li) {
 			if (li >= LINES.length) { particleTextState.done = true; return; }
@@ -514,21 +1049,164 @@
 				var tx = offX + px.x, ty = offY + px.y, sx, sy;
 				if (Math.random() < 0.7) { var ang = Math.random() * Math.PI * 2, dist = Math.random() * Math.min(W, H) * 0.25 + 50; sx = CX + Math.cos(ang) * dist; sy = CY + Math.sin(ang) * dist; }
 				else { var edge = Math.random(); if (edge < .25) { sx = Math.random() * W; sy = -60; } else if (edge < .5) { sx = W + 60; sy = Math.random() * H; } else if (edge < .75) { sx = Math.random() * W; sy = H + 60; } else { sx = -60; sy = Math.random() * H; } }
-				return { tx: tx, ty: ty, sx: sx, sy: sy, cx: sx, cy: sy, t: -Math.random() * .5, col: cols[li], r: Math.random() * .85 + .55, alpha: 0 };
+				return { tx: tx, ty: ty, sx: sx, sy: sy, cx: sx, cy: sy, t: -Math.random() * .5, col: cols[li], r: Math.random() * 1.2 + 0.8, alpha: 0 };
 			});
 			particleTextState.lines[li] = { parts: parts, alpha: 1, startTime: Date.now() };
 			setTimeout(function () { scheduleNextLine(li + 1); }, 900);
 		}
-		function updateParticleText() { if (!particleTextState) return; for (var li = 0; li < particleTextState.lines.length; li++) { var line = particleTextState.lines[li]; if (!line) continue; var age = (Date.now() - line.startTime) / 1000; if (age > 4.2) line.alpha = Math.max(0, line.alpha - .011); for (var p of line.parts) { p.t = Math.min(1, p.t + .055); if (p.t < 0) continue; var e = 1 - Math.pow(1 - Math.max(0, p.t), 3); p.cx = p.sx + (p.tx - p.sx) * e; p.cy = p.sy + (p.ty - p.sy) * e; p.alpha = Math.max(0, p.t) * line.alpha; if (p.alpha <= 0) continue; ctx.save(); ctx.globalAlpha = p.alpha; ctx.shadowBlur = 5; ctx.shadowColor = p.col; ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.cx, p.cy, p.r, 0, Math.PI * 2); ctx.fill(); ctx.restore(); } } }
+		function updateParticleText() {
+			if (!particleTextState) return;
+			var li, i, p, line;
+			for (li = 0; li < particleTextState.lines.length; li++) {
+				line = particleTextState.lines[li];
+				if (!line) continue;
+				if (line.exploding) {
+					// Explode: particles bay ra ngoài
+					var allGone = true;
+					for (i = 0; i < line.parts.length; i++) {
+						p = line.parts[i];
+						if (p.alpha <= 0) continue;
+						allGone = false;
+						p.cx += p.ex; p.cy += p.ey;
+						p.ex *= 1.07; p.ey *= 1.07; // tăng tốc
+						p.alpha = Math.max(0, p.alpha - 0.032);
+					}
+					if (allGone) line.alpha = 0;
+					continue;
+				}
+				var age = (Date.now() - line.startTime) / 1000;
+				for (i = 0; i < line.parts.length; i++) {
+					p = line.parts[i];
+					p.t = Math.min(1, p.t + .05);
+					if (p.t < 0) continue;
+					var e = 1 - Math.pow(1 - Math.max(0, p.t), 3);
+					p.cx = p.sx + (p.tx - p.sx) * e;
+					p.cy = p.sy + (p.ty - p.sy) * e;
+					p.alpha = Math.max(0, p.t) * line.alpha;
+				}
+			}
+			// Batch draw
+			ctx.save();
+			ctx.shadowBlur = 0;
+			for (li = 0; li < particleTextState.lines.length; li++) {
+				line = particleTextState.lines[li];
+				if (!line || line.alpha <= 0) continue;
+				ctx.fillStyle = line.parts[0] ? line.parts[0].col : '#ff2266';
+				ctx.globalAlpha = line.alpha;
+				ctx.beginPath();
+				for (i = 0; i < line.parts.length; i++) {
+					p = line.parts[i];
+					if (p.alpha <= 0 || p.t < 0) continue;
+					ctx.moveTo(p.cx + p.r, p.cy);
+					ctx.arc(p.cx, p.cy, p.r, 0, Math.PI * 2);
+				}
+				ctx.fill();
+			}
+			ctx.restore();
+		}
+
+		function startTextExplode() {
+			if (!particleTextState) { startAssemble(); return; }
+			// Mỗi particle nhận vận tốc hướng ra ngoài từ tâm dòng chữ
+			for (var li = 0; li < particleTextState.lines.length; li++) {
+				var line = particleTextState.lines[li];
+				if (!line) continue;
+				line.exploding = true;
+				for (var i = 0; i < line.parts.length; i++) {
+					var p = line.parts[i];
+					var dx = p.cx - CX, dy = p.cy - CY;
+					var len = Math.sqrt(dx * dx + dy * dy) || 1;
+					var spd = 2.5 + Math.random() * 3.5;
+					p.ex = dx / len * spd + (Math.random() - 0.5) * 1.5;
+					p.ey = dy / len * spd + (Math.random() - 0.5) * 1.5;
+				}
+			}
+			// Chờ particles bay hết rồi chuyển sang ảnh
+			setTimeout(function () {
+				particleTextState = null;
+				startAssemble();
+			}, 1400);
+		}
 
 		var imgObjs = new Array(PHOTOS.length).fill(null);
 		PHOTOS.forEach(function (src, i) { var img = new Image(); img.onload = function () { imgObjs[i] = img; }; img.onerror = function () { imgObjs[i] = null; }; img.src = src; });
 		function validImgs() { return imgObjs.filter(function (x) { return x && x.naturalWidth > 0; }); }
 
 		var assembleState = null;
-		function startAssemble() { goPhase(3); var img = validImgs()[0]; if (!img) { setTimeout(startSphere, 1000); return; } var TW = Math.min(W * .6, 320), TH = TW * (img.naturalHeight / img.naturalWidth) || TW * 1.3; var COLS = 12, ROWS = Math.round(COLS * (TH / TW)), pw = TW / COLS, ph = TH / ROWS; var ox = CX - TW / 2, oy = CY - TH / 2, pieces = []; for (var r = 0; r < ROWS; r++)for (var c = 0; c < COLS; c++) { var tx = ox + c * pw, ty = oy + r * ph, angle = Math.random() * Math.PI * 2, dist = Math.random() * Math.max(W, H) * .7 + 100; pieces.push({ sx: tx + Math.cos(angle) * dist, sy: ty + Math.sin(angle) * dist, tx: tx, ty: ty, pw: pw, ph: ph, sx0: c * pw / TW * img.naturalWidth, sy0: r * ph / TH * img.naturalHeight, sw: pw / TW * img.naturalWidth, sh: ph / TH * img.naturalHeight, t: 0, phase: 'assemble', vx: 0, vy: 0, spin: 0, spinV: (Math.random() - .5) * .08, alpha: 1 }); } assembleState = { img: img, pieces: pieces, TW: TW, TH: TH, ox: ox, oy: oy, holdStart: null, shatterStarted: false }; }
-		function updateAssemble() { if (!assembleState) return; var img = assembleState.img, pieces = assembleState.pieces, TW = assembleState.TW, TH = assembleState.TH; var allDone = true; for (var p of pieces) { if (p.phase === 'assemble') { p.t = Math.min(1, p.t + .016); var e = 1 - Math.pow(1 - p.t, 3); p.cx = p.sx + (p.tx - p.sx) * e; p.cy = p.sy + (p.ty - p.sy) * e; if (p.t < 1) allDone = false; } else if (p.phase === 'shatter') { p.vx *= .93; p.vy *= .93; p.vy += .25; p.cx += p.vx; p.cy += p.vy; p.spin += p.spinV; p.alpha -= .055; if (p.alpha > 0) allDone = false; } } for (var p of pieces) { if (p.alpha <= 0) continue; ctx.save(); ctx.globalAlpha = p.alpha; ctx.translate((p.cx || p.tx) + p.pw / 2, (p.cy || p.ty) + p.ph / 2); if (p.spin) ctx.rotate(p.spin); ctx.translate(-p.pw / 2, -p.ph / 2); ctx.drawImage(img, p.sx0, p.sy0, p.sw, p.sh, 0, 0, p.pw, p.ph); ctx.restore(); } if (assembleState.holdStart) { var prog = Math.min(1, (Date.now() - assembleState.holdStart) / 500); ctx.save(); ctx.shadowBlur = 30 * prog; ctx.shadowColor = 'rgba(255,80,160,.9)'; ctx.strokeStyle = 'rgba(255,120,190,' + (0.7 * prog) + ')'; ctx.lineWidth = 3; ctx.strokeRect(assembleState.ox, assembleState.oy, TW, TH); ctx.restore(); } if (allDone && pieces[0] && pieces[0].phase === 'assemble' && !assembleState.shatterStarted) { assembleState.holdStart = Date.now(); assembleState.shatterStarted = true; setTimeout(startShatter, 2000); } if (allDone && pieces[0] && pieces[0].phase === 'shatter') { assembleState = null; setTimeout(startSphere, 400); } }
-		function startShatter() { if (!assembleState) return; for (var p of assembleState.pieces) { p.phase = 'shatter'; var angle = Math.random() * Math.PI * 2, spd = Math.random() * 8 + 2; p.vx = Math.cos(angle) * spd; p.vy = Math.sin(angle) * spd - 3; p.cx = p.tx; p.cy = p.ty; } }
+		function startAssemble() {
+			goPhase(3);
+			var img = validImgs()[0];
+			if (!img) { setTimeout(startSphere, 1000); return; }
+			var TW = Math.min(W * .6, 320), TH = TW * (img.naturalHeight / img.naturalWidth) || TW * 1.3;
+			var COLS = 12, ROWS = Math.round(COLS * (TH / TW)), pw = TW / COLS, ph = TH / ROWS;
+			var ox = CX - TW / 2, oy = CY - TH / 2, pieces = [];
+			for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) {
+				var tx = ox + c * pw, ty = oy + r * ph;
+				var angle = Math.random() * Math.PI * 2, dist = Math.random() * Math.max(W, H) * .7 + 100;
+				pieces.push({
+					sx: tx + Math.cos(angle) * dist, sy: ty + Math.sin(angle) * dist,
+					tx: tx, ty: ty, pw: pw, ph: ph,
+					sx0: c * pw / TW * img.naturalWidth, sy0: r * ph / TH * img.naturalHeight,
+					sw: pw / TW * img.naturalWidth, sh: ph / TH * img.naturalHeight,
+					t: 0, phase: 'assemble', cx: 0, cy: 0,
+					vx: 0, vy: 0, spin: 0, spinV: (Math.random() - .5) * .08, alpha: 1
+				});
+			}
+			assembleState = { img: img, pieces: pieces, TW: TW, TH: TH, ox: ox, oy: oy, holdStart: null, shatterStarted: false };
+		}
+
+		function updateAssemble() {
+			if (!assembleState) return;
+			var img = assembleState.img, pieces = assembleState.pieces, TW = assembleState.TW, TH = assembleState.TH;
+			var allDone = true;
+			for (var i = 0; i < pieces.length; i++) {
+				var p = pieces[i];
+				if (p.phase === 'assemble') {
+					p.t = Math.min(1, p.t + .016);
+					var e = 1 - Math.pow(1 - p.t, 3);
+					p.cx = p.sx + (p.tx - p.sx) * e; p.cy = p.sy + (p.ty - p.sy) * e;
+					if (p.t < 1) allDone = false;
+				} else if (p.phase === 'shatter') {
+					p.vx *= .97; p.vy *= .97; p.vy += .08;
+					p.cx += p.vx; p.cy += p.vy;
+					p.spin += p.spinV; p.alpha -= .018;
+					if (p.alpha > 0) allDone = false;
+				}
+			}
+			for (var i = 0; i < pieces.length; i++) {
+				var p = pieces[i];
+				if (p.alpha <= 0) continue;
+				ctx.save(); ctx.globalAlpha = p.alpha;
+				ctx.translate((p.cx || p.tx) + p.pw / 2, (p.cy || p.ty) + p.ph / 2);
+				if (p.spin) ctx.rotate(p.spin);
+				ctx.translate(-p.pw / 2, -p.ph / 2);
+				ctx.drawImage(img, p.sx0, p.sy0, p.sw, p.sh, 0, 0, p.pw, p.ph);
+				ctx.restore();
+			}
+			if (assembleState.holdStart) {
+				var prog = Math.min(1, (Date.now() - assembleState.holdStart) / 500);
+				ctx.save(); ctx.shadowBlur = 30 * prog; ctx.shadowColor = 'rgba(255,80,160,.9)';
+				ctx.strokeStyle = 'rgba(255,120,190,' + (0.7 * prog) + ')'; ctx.lineWidth = 3;
+				ctx.strokeRect(assembleState.ox, assembleState.oy, TW, TH); ctx.restore();
+			}
+			if (allDone && pieces[0] && pieces[0].phase === 'assemble' && !assembleState.shatterStarted) {
+				assembleState.holdStart = Date.now(); assembleState.shatterStarted = true;
+				setTimeout(startShatter, 2000);
+			}
+			if (allDone && pieces[0] && pieces[0].phase === 'shatter') {
+				assembleState = null; setTimeout(startSphere, 400);
+			}
+		}
+
+		function startShatter() {
+			if (!assembleState) return;
+			for (var i = 0; i < assembleState.pieces.length; i++) {
+				var p = assembleState.pieces[i]; p.phase = 'shatter';
+				var angle = Math.random() * Math.PI * 2, spd = Math.random() * 4 + 1;
+				p.vx = Math.cos(angle) * spd; p.vy = Math.sin(angle) * spd - 1.5;
+				p.cx = p.tx; p.cy = p.ty;
+			}
+		}
 
 		var threeScene = null, threeCamera = null, threeRenderer = null;
 		var sphereGroup = null, threeRunning = false, threeStars = null;
@@ -607,7 +1285,7 @@
 			threeScene.add(threeStars);
 
 			threeRunning = true;
-			setTimeout(function () { document.getElementById('btnContinue').classList.add('show'); }, 7000);
+			setTimeout(function () { document.getElementById('btnContinue').classList.add('show'); }, 6000);
 
 			var velY = 0.003, velX = 0.0003, isDragging = false, dragStart3 = null;
 			c3d.addEventListener('mousedown', function (e) { isDragging = true; dragStart3 = { x: e.clientX, y: e.clientY }; velY = 0; velX = 0; });
@@ -656,6 +1334,9 @@
 			ctx.fillStyle = 'rgba(0,0,0,.16)'; ctx.fillRect(0, 0, W, H);
 			drawGlow(.8 + .2 * Math.sin(Date.now() * .0008));
 			updateBg(); drawBg(); drawStars();
+			// NEW: fireworks + flower
+			updateFireworks();
+			updateFlowerBouquet();
 			checkHold(); updateParticleText(); updateAssemble(); updateFlying();
 		}
 		loop();
