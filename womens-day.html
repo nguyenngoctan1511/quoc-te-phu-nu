@@ -39,6 +39,29 @@
 			padding-right: env(safe-area-inset-right);
 		}
 
+		#galaxyCv {
+			display: block;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			z-index: -2;
+		}
+
+		/* Sits between the galaxy and c2d — dims the backdrop behind the fireworks
+		   without covering the fireworks themselves (those are drawn opaque on c2d,
+		   on top of this layer). */
+		#dimOverlay {
+			position: fixed;
+			inset: 0;
+			z-index: -1;
+			background: #000;
+			opacity: 0;
+			pointer-events: none;
+			transition: opacity .8s ease;
+		}
+
 		#c2d {
 			display: block;
 			position: fixed;
@@ -63,6 +86,10 @@
 		#c3d.active {
 			display: block;
 			pointer-events: all;
+		}
+
+		#dimOverlay.show {
+			opacity: .4;
 		}
 
 		.screen {
@@ -390,6 +417,8 @@
 		</defs>
 	</svg>
 
+	<canvas id="galaxyCv"></canvas>
+	<div id="dimOverlay"></div>
 	<canvas id="c2d"></canvas>
 	<canvas id="c3d"></canvas>
 	<canvas id="textCanvas" style="display:none"></canvas>
@@ -441,6 +470,8 @@
 
 		var c2d = document.getElementById('c2d');
 		var ctx = c2d.getContext('2d');
+		var galaxyCv = document.getElementById('galaxyCv');
+		var gctx = galaxyCv.getContext('2d');
 		var W, H, CX, CY;
 
 		function resize() {
@@ -451,6 +482,9 @@
 			c2d.width = W * dpr; c2d.height = H * dpr;
 			c2d.style.width = W + 'px'; c2d.style.height = H + 'px';
 			ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+			galaxyCv.width = W * dpr; galaxyCv.height = H * dpr;
+			galaxyCv.style.width = W + 'px'; galaxyCv.style.height = H + 'px';
+			gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 		}
 		resize();
 
@@ -461,14 +495,14 @@
 				threeCamera.aspect = W / H;
 				threeCamera.updateProjectionMatrix();
 			}
-			buildGlowSprite();
+			drawGalaxyBackground();
 		}
 		window.addEventListener('resize', onResize);
 		if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
 
 		document.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
 
-		var PAL = ['rgba(255,30,80,', 'rgba(255,60,120,', 'rgba(255,0,60,', 'rgba(220,20,80,', 'rgba(255,100,140,', 'rgba(255,180,200,'];
+		var PAL = ['rgba(255,255,255,', 'rgba(190,210,255,', 'rgba(255,235,195,', 'rgba(210,180,255,', 'rgba(255,200,225,', 'rgba(170,225,255,'];
 		var BG_COUNT = 3000, BG_ABINS = 12;
 		var bgParts = [];
 		for (var i = 0; i < BG_COUNT; i++) bgParts.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.3 + .3, vx: (Math.random() - .5) * .32, vy: (Math.random() - .5) * .32, ba: Math.random() * .5 + .12, colIdx: Math.floor(Math.random() * PAL.length), tw: Math.random() * Math.PI * 2 });
@@ -501,23 +535,89 @@
 		}
 		var sstars = [];
 		setInterval(function () { if (sstars.length < 5) sstars.push({ x: Math.random() * W, y: Math.random() * H * .4, len: Math.random() * 130 + 60, spd: Math.random() * 6 + 4, ang: Math.PI / 6 + (Math.random() - .5) * .3, a: 1, w: Math.random() * 1.2 + .4 }); }, 1400);
-		function drawStars(dt) { for (var i = sstars.length - 1; i >= 0; i--) { var s = sstars[i]; s.x += Math.cos(s.ang) * s.spd * dt; s.y += Math.sin(s.ang) * s.spd * dt; s.a -= .018 * dt; if (s.a <= 0) { sstars.splice(i, 1); continue; } var g = ctx.createLinearGradient(s.x, s.y, s.x - Math.cos(s.ang) * s.len, s.y - Math.sin(s.ang) * s.len); g.addColorStop(0, 'rgba(255,160,210,' + s.a + ')'); g.addColorStop(1, 'rgba(255,100,170,0)'); ctx.save(); ctx.strokeStyle = g; ctx.lineWidth = s.w; ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(255,100,170,.5)'; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - Math.cos(s.ang) * s.len, s.y - Math.sin(s.ang) * s.len); ctx.stroke(); ctx.restore(); } }
-		// Pre-rendered glow sprite: avoids creating a radial gradient every single frame (60x/sec)
-		var glowSprite = null, glowBaseR = 0;
-		function buildGlowSprite() {
-			glowBaseR = Math.min(W, H) * .34;
-			var size = Math.max(2, Math.ceil(glowBaseR * 2));
-			var gc = document.createElement('canvas'); gc.width = size; gc.height = size;
-			var gctx = gc.getContext('2d');
-			var g = gctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, glowBaseR);
-			g.addColorStop(0, 'rgba(255,80,160,.09)');
-			g.addColorStop(.5, 'rgba(200,40,130,.045)');
-			g.addColorStop(1, 'rgba(0,0,0,0)');
-			gctx.fillStyle = g; gctx.fillRect(0, 0, size, size);
-			glowSprite = gc;
+		function drawStars(dt) { for (var i = sstars.length - 1; i >= 0; i--) { var s = sstars[i]; s.x += Math.cos(s.ang) * s.spd * dt; s.y += Math.sin(s.ang) * s.spd * dt; s.a -= .018 * dt; if (s.a <= 0) { sstars.splice(i, 1); continue; } var g = ctx.createLinearGradient(s.x, s.y, s.x - Math.cos(s.ang) * s.len, s.y - Math.sin(s.ang) * s.len); g.addColorStop(0, 'rgba(255,255,255,' + s.a + ')'); g.addColorStop(1, 'rgba(180,210,255,0)'); ctx.save(); ctx.strokeStyle = g; ctx.lineWidth = s.w; ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(200,220,255,.5)'; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - Math.cos(s.ang) * s.len, s.y - Math.sin(s.ang) * s.len); ctx.stroke(); ctx.restore(); } }
+
+		// ====== GALAXY BACKDROP ======
+		// Drawn once onto its own canvas sitting behind everything (not redrawn every
+		// frame, not touched by the trail-fade below) — a soft diagonal Milky Way band
+		// with a bright core and scattered dust, instead of the old flat pink glow.
+		function drawGalaxyBackground() {
+			gctx.clearRect(0, 0, W, H);
+			var bandAngle = -0.5, cx = W * 0.5, cy = H * 0.42, length = Math.max(W, H) * 1.4;
+			// More saturated hues + lower alpha: a darker base with punchier, less washed-out
+			// color (instead of a bright pale haze that fights with the UI text on top).
+			var hues = [[110, 60, 220], [40, 90, 230], [210, 70, 200], [50, 180, 220], [170, 50, 180]];
+			for (var i = 0; i < 16; i++) {
+				var t = (i / 15 - 0.5) * length;
+				var x = cx + Math.cos(bandAngle) * t, y = cy + Math.sin(bandAngle) * t;
+				var r = Math.max(W, H) * 0.24 * (0.65 + 0.35 * Math.sin(i * 1.7 + 1));
+				var col = hues[i % hues.length];
+				var grad = gctx.createRadialGradient(x, y, 0, x, y, r);
+				grad.addColorStop(0, 'rgba(' + col[0] + ',' + col[1] + ',' + col[2] + ',0.15)');
+				grad.addColorStop(0.5, 'rgba(' + col[0] + ',' + col[1] + ',' + col[2] + ',0.05)');
+				grad.addColorStop(1, 'rgba(' + col[0] + ',' + col[1] + ',' + col[2] + ',0)');
+				gctx.fillStyle = grad; gctx.fillRect(0, 0, W, H);
+			}
+			gctx.save();
+			gctx.translate(cx, cy); gctx.rotate(bandAngle); gctx.scale(1.8, 1);
+			var core = gctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(W, H) * 0.1);
+			core.addColorStop(0, 'rgba(255,250,240,.3)'); core.addColorStop(0.5, 'rgba(255,230,210,.09)'); core.addColorStop(1, 'rgba(255,230,210,0)');
+			gctx.fillStyle = core; gctx.fillRect(-W, -H, W * 2, H * 2);
+			gctx.restore();
+			// Dust lane: a chain of soft overlapping dark blobs across the core (round
+			// gradients, not a rectangle) so it reads as organic haze like a real photo
+			// of a galaxy, not a hard geometric stripe.
+			gctx.save();
+			gctx.translate(cx, cy); gctx.rotate(bandAngle); gctx.translate(0, Math.max(W, H) * 0.028);
+			gctx.globalCompositeOperation = 'destination-out';
+			var dustLen = Math.max(W, H) * 0.5, dustSteps = 14;
+			for (var i = 0; i < dustSteps; i++) {
+				var dt = (i / (dustSteps - 1) - 0.5) * dustLen;
+				var dy = (Math.random() - 0.5) * Math.max(W, H) * 0.012;
+				var dr = Math.max(W, H) * (0.028 + Math.random() * 0.014);
+				var dGrad = gctx.createRadialGradient(dt, dy, 0, dt, dy, dr);
+				dGrad.addColorStop(0, 'rgba(0,0,0,0.3)'); dGrad.addColorStop(0.6, 'rgba(0,0,0,0.14)'); dGrad.addColorStop(1, 'rgba(0,0,0,0)');
+				gctx.fillStyle = dGrad;
+				gctx.beginPath(); gctx.arc(dt, dy, dr, 0, Math.PI * 2); gctx.fill();
+			}
+			gctx.restore();
+			for (var i = 0; i < 3500; i++) {
+				var t = (Math.random() - 0.5) * length, spread = (Math.random() - 0.5) * (Math.max(W, H) * 0.1) * (Math.random() < 0.6 ? 1 : 2.6);
+				var px = cx + Math.cos(bandAngle) * t - Math.sin(bandAngle) * spread, py = cy + Math.sin(bandAngle) * t + Math.cos(bandAngle) * spread;
+				if (px < 0 || px > W || py < 0 || py > H) continue;
+				gctx.fillStyle = 'rgba(255,255,255,' + (0.1 + Math.random() * 0.55).toFixed(2) + ')';
+				gctx.beginPath(); gctx.arc(px, py, Math.random() * 0.8 + 0.2, 0, Math.PI * 2); gctx.fill();
+			}
+			for (var i = 0; i < 400; i++) {
+				gctx.fillStyle = 'rgba(200,210,255,' + (0.08 + Math.random() * 0.25).toFixed(2) + ')';
+				gctx.beginPath(); gctx.arc(Math.random() * W, Math.random() * H, Math.random() * 0.7 + 0.2, 0, Math.PI * 2); gctx.fill();
+			}
+			// Sparkle stars: a handful of standout bright points with a soft cross-flare,
+			// like the foreground bright stars in a real night-sky photo. Kept sparse (not
+			// applied to all stars) so the overall scene doesn't get washed out brighter.
+			function drawSparkleStar(x, y, r, a) {
+				gctx.save();
+				gctx.globalCompositeOperation = 'lighter';
+				var halo = gctx.createRadialGradient(x, y, 0, x, y, r * 5);
+				halo.addColorStop(0, 'rgba(255,255,255,' + (a * 0.5) + ')'); halo.addColorStop(1, 'rgba(255,255,255,0)');
+				gctx.fillStyle = halo;
+				gctx.beginPath(); gctx.arc(x, y, r * 5, 0, Math.PI * 2); gctx.fill();
+				gctx.strokeStyle = 'rgba(255,255,255,' + (a * 0.8) + ')';
+				gctx.lineWidth = Math.max(0.5, r * 0.35);
+				gctx.beginPath(); gctx.moveTo(x - r * 4, y); gctx.lineTo(x + r * 4, y); gctx.stroke();
+				gctx.beginPath(); gctx.moveTo(x, y - r * 4); gctx.lineTo(x, y + r * 4); gctx.stroke();
+				gctx.fillStyle = 'rgba(255,255,255,' + a + ')';
+				gctx.beginPath(); gctx.arc(x, y, r, 0, Math.PI * 2); gctx.fill();
+				gctx.restore();
+			}
+			for (var i = 0; i < 22; i++) {
+				var big = Math.random() < 0.25;
+				drawSparkleStar(Math.random() * W, Math.random() * H,
+					big ? (1.6 + Math.random() * 1.1) : (0.8 + Math.random() * 0.6),
+					big ? (0.75 + Math.random() * 0.25) : (0.45 + Math.random() * 0.3));
+			}
 		}
-		buildGlowSprite();
-		function drawGlow(i) { i = i || 1; var r = glowBaseR * i, size = r * 2; ctx.save(); ctx.globalAlpha = Math.min(1, i); ctx.drawImage(glowSprite, CX - r, CY - r, size, size); ctx.restore(); }
+		drawGalaxyBackground();
 
 		var phase = 0;
 		var PHASE_IDS = ['phaseLoading', 'phaseHold', 'phaseText', null, null, null];
@@ -557,14 +657,24 @@
 		var FW_FLAT = [].concat.apply([], FW_PALETTES);
 		var fwBuckets = []; for (var fwi = 0; fwi < FW_FLAT.length; fwi++) fwBuckets.push([]);
 
-		function launchFirework(x, y, paletteIdx, big) {
-			var base = (paletteIdx == null ? Math.floor(Math.random() * FW_PALETTES.length) : paletteIdx) * 5;
-			var count = big ? (170 + Math.floor(Math.random() * 70)) : (110 + Math.floor(Math.random() * 50));
+		// Three burst shapes so the show doesn't look like the same round blob repeated —
+		// 'peony' (classic full sphere), 'ring' (tight speed variance → hollow circle),
+		// 'willow' (fewer, slower-fading golden streaks that droop under gravity, like a
+		// real willow firework) instead of only ever drawing one kind of explosion.
+		function launchFirework(x, y, paletteIdx, big, type) {
+			type = type || 'peony';
+			var isWillow = type === 'willow', isRing = type === 'ring';
+			var base = isWillow ? 5 : (paletteIdx == null ? Math.floor(Math.random() * FW_PALETTES.length) : paletteIdx) * 5;
+			var count = isWillow
+				? (big ? 100 + Math.floor(Math.random() * 40) : 60 + Math.floor(Math.random() * 30))
+				: (big ? 170 + Math.floor(Math.random() * 70) : 110 + Math.floor(Math.random() * 50));
 			var room = FW_MAX - fireworks.length;
 			if (count > room) count = Math.max(0, room);
+			var fricBase = isWillow ? 0.976 : 0.955;
 			for (var i = 0; i < count; i++) {
-				var ang = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.25;
-				var spd = (big ? Math.random() * 5.5 + 2.5 : Math.random() * 4.5 + 2);
+				var ang = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * (isRing ? 0.08 : 0.25);
+				var spdBase = big ? Math.random() * 5.5 + 2.5 : Math.random() * 4.5 + 2;
+				var spd = isRing ? spdBase * 0.95 + 0.3 : (isWillow ? spdBase * 0.85 : spdBase);
 				fireworks.push({
 					x: x, y: y,
 					px: x, py: y,   // prev pos for trail (1-segment only, no array)
@@ -573,8 +683,9 @@
 					alpha: 1,
 					colIdx: base + Math.floor(Math.random() * 5),
 					r: Math.random() * 2 + 0.8,
-					gravity: 0.06 + Math.random() * 0.03,
-					fade: 0.013 + Math.random() * 0.009
+					gravity: isWillow ? (0.03 + Math.random() * 0.02) : (0.06 + Math.random() * 0.03),
+					fade: isWillow ? (0.006 + Math.random() * 0.004) : (0.013 + Math.random() * 0.009),
+					fricBase: fricBase
 				});
 			}
 			// Quick expanding shockwave ring at the burst origin — cheap (one stroked
@@ -582,15 +693,16 @@
 			flashes.push({ x: x, y: y, r: 2, vr: big ? 7.5 : 5.5, alpha: big ? 0.9 : 0.7, fade: big ? 0.11 : 0.15, lw: big ? 4 : 3, col: FW_FLAT[base + 4] || '#ffffff' });
 		}
 
-		function launchRocket(x, big) {
+		function launchRocket(x, big, type) {
 			rockets.push({
-				x: x || CX + (Math.random() - 0.5) * W * 0.5,
+				x: x != null ? x : (Math.random() * W * 0.86 + W * 0.07),
 				y: H,
 				vy: -(Math.random() * 9 + 13),
 				vx: (Math.random() - 0.5) * 1.5,
 				targetY: H * 0.12 + Math.random() * H * 0.3,
 				px: 0, py: H,
-				big: !!big
+				big: !!big,
+				type: type || 'peony'
 			});
 		}
 
@@ -640,7 +752,7 @@
 				ctx.fill();
 
 				if (r.y <= r.targetY || r.vy >= 0) {
-					launchFirework(r.x, r.y, Math.floor(Math.random() * FW_PALETTES.length), r.big);
+					launchFirework(r.x, r.y, Math.floor(Math.random() * FW_PALETTES.length), r.big, r.type);
 					rockets.splice(i, 1);
 				}
 			}
@@ -649,13 +761,14 @@
 			updateFlashes(dt);
 
 			// --- firework particles ---
-			// Step 1: update physics
-			var fric = Math.pow(0.955, dt);
+			// Step 1: update physics (friction is per-particle now — willow bursts coast
+			// with much less drag than peony/ring, so they actually carry and droop).
 			for (i = fireworks.length - 1; i >= 0; i--) {
 				p = fireworks[i];
 				p.px = p.x; p.py = p.y;
 				p.x += p.vx * dt;
 				p.y += p.vy * dt;
+				var fric = Math.pow(p.fricBase, dt);
 				p.vx *= fric;
 				p.vy *= fric;
 				p.vy += p.gravity * dt;
@@ -689,7 +802,17 @@
 					ctx.lineTo(p.x, p.y);
 				}
 				ctx.stroke();
-				// dots
+				// soft halo under each spark — bigger, dimmer circle first, so the spark
+				// reads as a glowing glint instead of a flat hard-edged dot
+				for (i = 0; i < group.length; i++) {
+					p = group[i];
+					if (p.alpha <= 0) continue;
+					ctx.globalAlpha = p.alpha * 0.3;
+					ctx.beginPath();
+					ctx.arc(p.x, p.y, p.r * 2.6, 0, Math.PI * 2);
+					ctx.fill();
+				}
+				// bright core dot
 				for (i = 0; i < group.length; i++) {
 					p = group[i];
 					if (p.alpha <= 0) continue;
@@ -702,8 +825,16 @@
 			ctx.restore();
 		}
 
+		function pickBurstType() {
+			var r = Math.random();
+			if (r < 0.6) return 'peony';
+			if (r < 0.84) return 'ring';
+			return 'willow';
+		}
+
 		function startFireworks(duration, onDone) {
 			fireworkActive = true;
+			document.getElementById('dimOverlay').classList.add('show');
 			rockets = []; fireworks = []; flashes = [];
 			// Nhiều đợt hơn, dồn dập hơn, cuối có grand finale lớn
 			var burstTimes = [0, 150, 350, 600, 900, 1250, 1600, 2000, 2450, 2900, 3150, 3400, 3600];
@@ -713,8 +844,16 @@
 					if (Date.now() <= endTime + 200) {
 						var isFinale = delay >= 3150;
 						var n = isFinale ? 7 : 3 + Math.floor(Math.random() * 2);
+						// Spread rockets across the full width in evenly-spaced slots (with a
+						// little jitter) instead of a random pick near center — that's what
+						// was making bursts in the same wave land right on top of each other.
+						var margin = W * 0.1, usable = W - margin * 2;
 						for (var i = 0; i < n; i++) {
-							(function (ii) { setTimeout(function () { launchRocket(null, isFinale); }, ii * 110); })(i);
+							var slot = (i + 0.5) / n;
+							var jitter = (Math.random() - 0.5) * (usable / n) * 0.7;
+							var xx = margin + slot * usable + jitter;
+							var type = isFinale ? 'peony' : pickBurstType();
+							(function (ii, xx2, tt) { setTimeout(function () { launchRocket(xx2, isFinale, tt); }, ii * 130 + Math.random() * 60); })(i, xx, type);
 						}
 					}
 				}, delay);
@@ -722,6 +861,7 @@
 			// Chờ tất cả particles tắt hẳn rồi mới gọi onDone
 			setTimeout(function () {
 				fireworkActive = false;
+				document.getElementById('dimOverlay').classList.remove('show');
 				var check = setInterval(function () {
 					if (fireworks.length === 0 && rockets.length === 0) {
 						clearInterval(check);
@@ -734,8 +874,78 @@
 		// ====== FLOWER BOUQUET PARTICLE SYSTEM ======
 		var flowerState = null;
 
-		// Vẽ bó hoa theo đúng emoji 💐: nghiêng ~-30°, gói giấy hình nón, hoa đa dạng
+		// Real bouquet photo — preferred over the hand-drawn version below for a far
+		// more realistic result. Preloaded early so it's ready well before it's needed.
+		var bouquetImg = new Image();
+		var bouquetImgReady = false;
+		bouquetImg.onload = function () { bouquetImgReady = true; };
+		bouquetImg.onerror = function () { bouquetImgReady = false; };
+		bouquetImg.src = './bouquet.png';
+
+		// Shared 16-color quantize palette + pixel sampler, used by both the photo path
+		// and the hand-drawn fallback so the particle fly-in logic only lives once.
+		var QPAL = [
+			[255, 20, 100], [255, 60, 140], [255, 100, 170], [255, 150, 200], [255, 200, 220],
+			[220, 0, 60], [180, 0, 80], [255, 80, 30], [220, 60, 0], [255, 200, 50],
+			[255, 240, 100], [50, 180, 60], [40, 150, 50], [30, 130, 40], [255, 255, 255], [200, 100, 200]
+		];
+		function quantize(r, g, b) {
+			// Returns a palette INDEX (not an rgb string) so particles can be bucketed by
+			// a persistent array per color, same as the background-star/firework systems.
+			var best = 0, bd = 1e9;
+			for (var q = 0; q < QPAL.length; q++) {
+				var dr = r - QPAL[q][0], dg = g - QPAL[q][1], db = b - QPAL[q][2];
+				var d = dr * dr + dg * dg + db * db;
+				if (d < bd) { bd = d; best = q; }
+			}
+			return best;
+		}
+		var QPAL_STR = QPAL.map(function (c) { return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'; });
+		var flowerBuckets = QPAL.map(function () { return []; });
+		// Also tracks the actual bounding box of the opaque content (not the full canvas)
+		// so the final piece can be centered on its real content instead of sitting
+		// off-center because of transparent padding around it.
+		function samplePixelsFromCanvas(fctx, cw, ch) {
+			var data = fctx.getImageData(0, 0, cw, ch).data;
+			var px = [];
+			// Target a fixed particle budget regardless of source size/opacity — a real
+			// photo is a fully-opaque rectangle (unlike the old hand-drawn silhouette), so
+			// a fixed pixel-step blew the particle count up ~7x and that's what was lagging.
+			var step = Math.max(1, Math.round(Math.sqrt((cw * ch) / 2400)));
+			var minX = cw, maxX = 0, minY = ch, maxY = 0;
+			for (var fy2 = 0; fy2 < ch; fy2 += step) {
+				for (var fx2 = 0; fx2 < cw; fx2 += step) {
+					var idx = (fy2 * cw + fx2) * 4;
+					if (data[idx + 3] > 50) {
+						px.push({ x: fx2, y: fy2, colIdx: quantize(data[idx], data[idx + 1], data[idx + 2]) });
+						if (fx2 < minX) minX = fx2; if (fx2 > maxX) maxX = fx2;
+						if (fy2 < minY) minY = fy2; if (fy2 > maxY) maxY = fy2;
+					}
+				}
+			}
+			return { pixels: px, cx: px.length ? (minX + maxX) / 2 : cw / 2, cy: px.length ? (minY + maxY) / 2 : ch / 2 };
+		}
+
 		function buildFlowerBouquet() {
+			if (bouquetImgReady) {
+				var iw = bouquetImg.naturalWidth, ih = bouquetImg.naturalHeight;
+				// "Cover" fit: scale so the photo fills the entire viewport (cropping
+				// whichever axis overflows), like a phone wallpaper — instead of the old
+				// "contain" fit that kept the whole photo but left it small and boxed-in.
+				var scale = Math.max(W / iw, H / ih);
+				var tw = iw * scale, th = ih * scale;
+				var fc2 = document.createElement('canvas'); fc2.width = tw; fc2.height = th;
+				var fctx2 = fc2.getContext('2d');
+				fctx2.drawImage(bouquetImg, 0, 0, tw, th);
+				var res = samplePixelsFromCanvas(fctx2, tw, th);
+				return { pixels: res.pixels, tw: tw, th: th, canvas: fc2, cx: res.cx, cy: res.cy };
+			}
+			return buildFlowerBouquetDrawn();
+		}
+
+		// Hand-drawn fallback (used only if bouquet.png hasn't loaded in time / is missing).
+		// Vẽ bó hoa theo đúng emoji 💐: nghiêng ~-30°, gói giấy hình nón, hoa đa dạng
+		function buildFlowerBouquetDrawn() {
 			var fc = document.createElement('canvas');
 			var fctx = fc.getContext('2d');
 			var S = Math.max(W, H) * 0.8;
@@ -852,68 +1062,45 @@
 			fctx.restore();
 
 			// ── HÀM VẼ HOA helper ──
-			function drawRose(fx, fy, r, layers, baseCol, darkCol) {
-				// Cánh hoa dạng xoắn (rose-like)
-				var n = 5;
-				for (var layer = 0; layer < layers; layer++) {
-					var lr = r * (1 - layer * 0.18);
-					var rot = layer * 0.6;
-					var alpha = 0.75 + layer * 0.08;
-					fctx.save();
-					fctx.translate(fx, fy);
-					fctx.rotate(rot);
-					fctx.globalAlpha = alpha;
-					for (var k = 0; k < n; k++) {
-						var a = (Math.PI * 2 * k) / n;
-						var px2 = Math.cos(a) * lr * 0.7;
-						var py2 = Math.sin(a) * lr * 0.7;
-						var pg = fctx.createRadialGradient(px2, py2, 0, px2, py2, lr * 0.8);
-						pg.addColorStop(0, baseCol);
-						pg.addColorStop(1, darkCol);
-						fctx.fillStyle = pg;
-						fctx.beginPath();
-						fctx.ellipse(px2, py2, lr * 0.52, lr * 0.35, a, 0, Math.PI * 2);
-						fctx.fill();
+			// Layered, curved petals (bezier teardrop shapes) with gradient shading,
+			// instead of the old flat-ellipse "icon" petals — reads as a real layered
+			// bloom (dahlia/lotus-like) rather than clip-art.
+			function petalPath(pw, ph) {
+				fctx.beginPath();
+				fctx.moveTo(0, ph);
+				fctx.bezierCurveTo(pw, ph * 0.35, pw * 0.85, -ph * 0.55, 0, -ph);
+				fctx.bezierCurveTo(-pw * 0.85, -ph * 0.55, -pw, ph * 0.35, 0, ph);
+				fctx.closePath();
+			}
+			function drawBloom(fx, fy, r, baseCol, darkCol, lightCol) {
+				fctx.save(); fctx.translate(fx, fy);
+				var layers = [
+					{ lr: r * 0.34, petals: 5, rot: 0.3 },
+					{ lr: r * 0.55, petals: 6, rot: 0.9 },
+					{ lr: r * 0.78, petals: 7, rot: 1.6 },
+					{ lr: r * 1.0, petals: 8, rot: 2.3 }
+				];
+				for (var li = 0; li < layers.length; li++) {
+					var L = layers[li];
+					for (var k = 0; k < L.petals; k++) {
+						var a = (Math.PI * 2 * k) / L.petals + L.rot;
+						var dist = L.lr * 0.42;
+						fctx.save();
+						fctx.translate(Math.cos(a) * dist, Math.sin(a) * dist);
+						fctx.rotate(a + Math.PI / 2);
+						var pw = L.lr * 0.52, ph = L.lr * 0.62;
+						var g = fctx.createLinearGradient(0, -ph, 0, ph);
+						g.addColorStop(0, lightCol); g.addColorStop(0.55, baseCol); g.addColorStop(1, darkCol);
+						fctx.fillStyle = g; fctx.globalAlpha = 0.92;
+						petalPath(pw, ph); fctx.fill();
+						fctx.globalAlpha = 0.22; fctx.strokeStyle = darkCol; fctx.lineWidth = Math.max(0.6, r * 0.02); fctx.stroke();
+						fctx.restore();
 					}
-					fctx.restore();
 				}
-				// tâm hoa
-				var cg = fctx.createRadialGradient(fx, fy, 0, fx, fy, r * 0.28);
-				cg.addColorStop(0, '#ffe066'); cg.addColorStop(1, '#ffaa00');
-				fctx.save(); fctx.fillStyle = cg; fctx.globalAlpha = 1;
-				fctx.beginPath(); fctx.arc(fx, fy, r * 0.28, 0, Math.PI * 2); fctx.fill();
-				fctx.restore();
-			}
-
-			function drawDaisy(fx, fy, r, n, petalCol, midCol) {
-				fctx.save(); fctx.translate(fx, fy);
-				for (var k = 0; k < n; k++) {
-					var a = (Math.PI * 2 * k) / n;
-					fctx.save(); fctx.rotate(a);
-					fctx.fillStyle = petalCol; fctx.globalAlpha = 0.88;
-					fctx.beginPath();
-					fctx.ellipse(0, -r * 0.65, r * 0.22, r * 0.42, 0, 0, Math.PI * 2);
-					fctx.fill(); fctx.restore();
-				}
-				fctx.fillStyle = midCol; fctx.globalAlpha = 1;
-				fctx.beginPath(); fctx.arc(0, 0, r * 0.3, 0, Math.PI * 2); fctx.fill();
-				fctx.restore();
-			}
-
-			function drawTulip(fx, fy, r, col1, col2) {
-				fctx.save(); fctx.translate(fx, fy);
-				// 3 cánh tulip
-				[[-0.3, col1], [0, col2], [0.3, col1]].forEach(function (d) {
-					fctx.save(); fctx.rotate(d[0]);
-					var g = fctx.createLinearGradient(0, 0, 0, -r * 1.1);
-					g.addColorStop(0, d[1]); g.addColorStop(1, 'rgba(255,255,255,0.3)');
-					fctx.fillStyle = g; fctx.globalAlpha = 0.9;
-					fctx.beginPath();
-					fctx.moveTo(0, 0);
-					fctx.bezierCurveTo(-r * 0.5, -r * 0.5, -r * 0.4, -r * 1.0, 0, -r * 1.15);
-					fctx.bezierCurveTo(r * 0.4, -r * 1.0, r * 0.5, -r * 0.5, 0, 0);
-					fctx.fill(); fctx.restore();
-				});
+				fctx.globalAlpha = 1;
+				var cg = fctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.22);
+				cg.addColorStop(0, darkCol); cg.addColorStop(1, baseCol);
+				fctx.fillStyle = cg; fctx.beginPath(); fctx.arc(0, 0, r * 0.2, 0, Math.PI * 2); fctx.fill();
 				fctx.restore();
 			}
 
@@ -931,24 +1118,24 @@
 			var R = U * 11;
 
 			// Hàng dưới (sát miệng gói)
-			drawTulip(0, -20 * U, R * 0.95, '#ff2255', '#dd0033');
-			drawRose(-16 * U, -18 * U, R * 1.0, 2, '#ff4488', '#cc0044');
-			drawRose(16 * U, -18 * U, R * 1.0, 2, '#ff4488', '#cc0044');
+			drawBloom(0, -20 * U, R * 0.95, '#ff3d7a', '#8a0030', '#ffc2d8');
+			drawBloom(-16 * U, -18 * U, R * 1.0, '#ff5a8f', '#99003d', '#ffd0e0');
+			drawBloom(16 * U, -18 * U, R * 1.0, '#ff5a8f', '#99003d', '#ffd0e0');
 
 			// Hàng giữa
-			drawDaisy(-28 * U, -30 * U, R * 0.85, 8, '#fffde7', '#fff176');
-			drawDaisy(28 * U, -30 * U, R * 0.85, 8, '#fffde7', '#fff176');
-			drawRose(0, -34 * U, R * 1.05, 3, '#ff2266', '#aa0033');
+			drawBloom(-28 * U, -30 * U, R * 0.85, '#ff8a3d', '#a83d00', '#ffe0c2');
+			drawBloom(28 * U, -30 * U, R * 0.85, '#ff8a3d', '#a83d00', '#ffe0c2');
+			drawBloom(0, -34 * U, R * 1.05, '#ff2266', '#73001f', '#ffb3cf');
 
 			// Hàng trên
-			drawRose(-18 * U, -40 * U, R * 0.85, 2, '#ff8833', '#dd4400');
-			drawRose(18 * U, -40 * U, R * 0.85, 2, '#ff8833', '#dd4400');
-			drawTulip(0, -44 * U, R * 0.78, '#ff44cc', '#bb0099');
+			drawBloom(-18 * U, -40 * U, R * 0.85, '#c13dff', '#4a0066', '#ecc8ff');
+			drawBloom(18 * U, -40 * U, R * 0.85, '#c13dff', '#4a0066', '#ecc8ff');
+			drawBloom(0, -44 * U, R * 0.78, '#ff5ec4', '#840047', '#ffd6ef');
 
 			// Đỉnh (loe rộng như 💐)
-			drawDaisy(-24 * U, -52 * U, R * 0.68, 7, '#ff99cc', '#ff3399');
-			drawDaisy(24 * U, -52 * U, R * 0.68, 7, '#ff99cc', '#ff3399');
-			drawRose(0, -58 * U, R * 0.7, 2, '#ff3377', '#bb0055');
+			drawBloom(-24 * U, -52 * U, R * 0.68, '#ffd23d', '#a86a00', '#fff2c2');
+			drawBloom(24 * U, -52 * U, R * 0.68, '#ffd23d', '#a86a00', '#fff2c2');
+			drawBloom(0, -58 * U, R * 0.7, '#ff3d7a', '#8a0030', '#ffc2d8');
 
 			// Hoa bi nhỏ lấp khe hở, đối xứng hai bên
 			[[-10, -24], [10, -24], [-23, -22], [23, -22], [-14, -46], [14, -46],
@@ -958,46 +1145,9 @@
 
 			fctx.restore(); // kết thúc rotate tổng thể
 
-			// === Sample pixels - quantize về ~16 màu để batch hiệu quả ===
-			var data = fctx.getImageData(0, 0, S, S).data;
-			var px = [];
-			var step = Math.max(2, Math.round(S / 220));
-			// Bảng màu đại diện (quantize thủ công)
-			var QPAL = [
-				[255, 20, 100], [255, 60, 140], [255, 100, 170], [255, 150, 200], [255, 200, 220],
-				[220, 0, 60], [180, 0, 80], [255, 80, 30], [220, 60, 0], [255, 200, 50],
-				[255, 240, 100], [50, 180, 60], [40, 150, 50], [30, 130, 40], [255, 255, 255], [200, 100, 200]
-			];
-			function quantize(r, g, b) {
-				var best = 0, bd = 1e9;
-				for (var q = 0; q < QPAL.length; q++) {
-					var dr = r - QPAL[q][0], dg = g - QPAL[q][1], db = b - QPAL[q][2];
-					var d = dr * dr + dg * dg + db * db;
-					if (d < bd) { bd = d; best = q; }
-				}
-				var c = QPAL[best];
-				return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')';
-			}
-			// Track the actual bounding box of the drawing (not the full SxS canvas) so the
-			// final piece can be centered on its real content — otherwise the padding left
-			// by the rotated artwork makes it sit off-center / "lệch" on screen.
-			var minX = S, maxX = 0, minY = S, maxY = 0;
-			for (var fy2 = 0; fy2 < S; fy2 += step) {
-				for (var fx2 = 0; fx2 < S; fx2 += step) {
-					var idx = (fy2 * S + fx2) * 4;
-					if (data[idx + 3] > 50) {
-						px.push({
-							x: fx2, y: fy2,
-							col: quantize(data[idx], data[idx + 1], data[idx + 2])
-						});
-						if (fx2 < minX) minX = fx2; if (fx2 > maxX) maxX = fx2;
-						if (fy2 < minY) minY = fy2; if (fy2 > maxY) maxY = fy2;
-					}
-				}
-			}
-			var contentCX = px.length ? (minX + maxX) / 2 : S / 2;
-			var contentCY = px.length ? (minY + maxY) / 2 : S / 2;
-			return { pixels: px, tw: S, th: S, canvas: fc, cx: contentCX, cy: contentCY };
+			// Sample pixels via the shared helper (quantize + bounding-box centering)
+			var res = samplePixelsFromCanvas(fctx, S, S);
+			return { pixels: res.pixels, tw: S, th: S, canvas: fc, cx: res.cx, cy: res.cy };
 		}
 
 		function startFlowerBouquet(onDone) {
@@ -1036,7 +1186,7 @@
 					sx: sx, sy: sy,
 					cx: sx, cy: sy,
 					t: -Math.random() * 0.7,
-					col: px.col,
+					colIdx: px.colIdx,
 					r: Math.random() * 1.8 + 0.9,
 					alpha: 0
 				};
@@ -1072,19 +1222,22 @@
 			}
 
 			if (!flowerState.assembled) {
-				// Step 2 (still flying in): batch-draw the particle swarm by color
-				var byCol = {};
+				// Step 2 (still flying in): batch-draw by color using persistent bucket
+				// arrays (just .length = 0 to clear) — no per-frame object/array
+				// allocation, which is what made the larger photo-sourced particle count
+				// lag compared to the old hand-drawn shape.
+				for (i = 0; i < flowerBuckets.length; i++) flowerBuckets[i].length = 0;
 				for (i = 0; i < parts.length; i++) {
 					p = parts[i];
 					if (p.alpha <= 0) continue;
-					if (!byCol[p.col]) byCol[p.col] = [];
-					byCol[p.col].push(p);
+					flowerBuckets[p.colIdx].push(p);
 				}
 				ctx.save();
 				ctx.shadowBlur = 0;
-				for (var col in byCol) {
-					var group = byCol[col];
-					ctx.fillStyle = col;
+				for (var ci = 0; ci < flowerBuckets.length; ci++) {
+					var group = flowerBuckets[ci];
+					if (!group.length) continue;
+					ctx.fillStyle = QPAL_STR[ci];
 					ctx.globalAlpha = 1;
 					ctx.beginPath();
 					for (i = 0; i < group.length; i++) {
@@ -1140,7 +1293,7 @@
 			});
 		}
 
-		var LINES = ['Gửi Em', 'Cô Gái Đặc Biệt', '20/10 Vui Vẻ Nhé 🌸'];
+		var LINES = ['Gửi Em', 'Cô Gái Đặc Biệt', '20/10 Vui Vẻ Nhé 💐'];
 		var particleTextState = null;
 		// Auto-shrinks the font so the line always fits the screen width (no more clipped
 		// letters on narrow phones), and scales the pixel-sampling step with the final font
@@ -1157,7 +1310,7 @@
 			var step = Math.max(1, Math.round(fontSize / 42));
 			var data = tctx.getImageData(0, 0, tc.width, tc.height).data, px = [];
 			for (var y = 0; y < tc.height; y += step)for (var x = 0; x < tc.width; x += step)if (data[(y * tc.width + x) * 4 + 3] > 80) px.push({ x: x, y: y });
-			return { pixels: px, tw: tc.width, th: tc.height };
+			return { pixels: px, tw: tc.width, th: tc.height, fontSize: fontSize };
 		}
 		function startParticleText() { particleTextState = { lines: [], done: false }; scheduleNextLine(0); }
 		function scheduleNextLine(li) {
@@ -1174,7 +1327,11 @@
 				else { var edge = Math.random(); if (edge < .25) { sx = Math.random() * W; sy = -60; } else if (edge < .5) { sx = W + 60; sy = Math.random() * H; } else if (edge < .75) { sx = Math.random() * W; sy = H + 60; } else { sx = -60; sy = Math.random() * H; } }
 				return { tx: tx, ty: ty, sx: sx, sy: sy, cx: sx, cy: sy, t: -Math.random() * .5, col: cols[li], r: Math.random() * 1.2 + 0.8, alpha: 0 };
 			});
-			particleTextState.lines[li] = { parts: parts, alpha: 1, startTime: Date.now() };
+			particleTextState.lines[li] = {
+				parts: parts, alpha: 1, startTime: Date.now(), settled: false,
+				text: LINES[li], fontSize: res.fontSize, col: cols[li] || '#ff3377',
+				drawX: offX + res.tw / 2, drawY: offY + res.th / 2
+			};
 			setTimeout(function () { scheduleNextLine(li + 1); }, 900);
 		}
 		function updateParticleText(dt) {
@@ -1199,22 +1356,43 @@
 					continue;
 				}
 				var age = (Date.now() - line.startTime) / 1000;
+				var allSettled = true;
 				for (i = 0; i < line.parts.length; i++) {
 					p = line.parts[i];
 					p.t = Math.min(1, p.t + .07 * dt);
-					if (p.t < 0) continue;
+					if (p.t < 0) { allSettled = false; continue; }
 					var e = 1 - Math.pow(1 - Math.max(0, p.t), 3);
 					p.cx = p.sx + (p.tx - p.sx) * e;
 					p.cy = p.sy + (p.ty - p.sy) * e;
 					p.alpha = Math.max(0, p.t) * line.alpha;
+					if (p.t < 1) allSettled = false;
 				}
+				if (allSettled) line.settled = true;
 			}
-			// Batch draw
-			ctx.save();
-			ctx.shadowBlur = 0;
+			// Draw: still-assembling lines as flying dots; once a line has fully
+			// converged, switch to real glowing text (crisp neon look) instead of
+			// continuing to show it as a field of sparse dots.
 			for (li = 0; li < particleTextState.lines.length; li++) {
 				line = particleTextState.lines[li];
 				if (!line || line.alpha <= 0) continue;
+				if (line.settled && !line.exploding) {
+					ctx.save();
+					ctx.globalAlpha = line.alpha;
+					ctx.font = "700 " + line.fontSize + "px 'Dancing Script',cursive";
+					ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+					ctx.shadowColor = line.col; ctx.shadowBlur = line.fontSize * 0.28;
+					ctx.fillStyle = line.col;
+					ctx.fillText(line.text, line.drawX, line.drawY);
+					ctx.fillText(line.text, line.drawX, line.drawY);
+					ctx.shadowBlur = line.fontSize * 0.1;
+					ctx.fillStyle = '#fff5fa';
+					ctx.globalAlpha = line.alpha * 0.55;
+					ctx.fillText(line.text, line.drawX, line.drawY);
+					ctx.restore();
+					continue;
+				}
+				ctx.save();
+				ctx.shadowBlur = 0;
 				ctx.fillStyle = line.parts[0] ? line.parts[0].col : '#ff2266';
 				ctx.globalAlpha = line.alpha;
 				ctx.beginPath();
@@ -1225,8 +1403,8 @@
 					ctx.arc(p.cx, p.cy, p.r, 0, Math.PI * 2);
 				}
 				ctx.fill();
+				ctx.restore();
 			}
-			ctx.restore();
 		}
 
 		function startTextExplode() {
@@ -1511,7 +1689,7 @@
 				// actually was. velY/velX are only for momentum coast + idle auto-spin once
 				// the finger lifts.
 				if (!isDragging) {
-					velY += (0.003 - velY) * Math.min(1, 0.03 * dt3); velX += (0.0014 - velX) * Math.min(1, 0.03 * dt3);
+					velY += (0.003 - velY) * Math.min(1, 0.03 * dt3); velX += (0 - velX) * Math.min(1, 0.03 * dt3);
 					sphereGroup.rotation.y += velY * dt3;
 					sphereGroup.rotation.x += velX * dt3;
 				}
@@ -1594,7 +1772,13 @@
 		var flyingPhotos = [], flyPhase = false;
 		function startFlying() {
 			stopSphere(); goPhase(5); flyPhase = true;
-			var btn = document.getElementById('btnContinue'); btn.style.display = ''; btn.classList.remove('show');
+			// Force it fully, definitively hidden here — it has no further purpose once
+			// flying starts. Re-showing it via display='' (the old code) left it exposed
+			// to its own opacity transition, which could make it flash back into view
+			// right as the photos take over.
+			var btn = document.getElementById('btnContinue');
+			btn.classList.remove('show');
+			btn.style.opacity = '0'; btn.style.pointerEvents = 'none'; btn.style.display = 'none';
 			flyingPhotos = [];
 			var valid = validImgs();
 			for (var i = 0; i < valid.length; i++) { var img = valid[i], w = Math.random() * 90 + 80, h = w * (img.naturalHeight / img.naturalWidth) || w * 1.3; flyingPhotos.push({ img: img, x: Math.random() * W, y: H + h + Math.random() * 300, w: w, h: h, vx: (Math.random() - .5) * 1.2, vy: -(Math.random() * 1.5 + 1.2), rot: (Math.random() - .5) * .3, rotV: (Math.random() - .5) * .005, alpha: 1, glowAnim: Math.random() * Math.PI * 2 }); }
@@ -1626,8 +1810,14 @@
 			// Capped to avoid a giant jump after the tab was backgrounded/throttled.
 			var dt = Math.min(3, (now - lastFrameT) / 16.6667);
 			lastFrameT = now;
-			ctx.fillStyle = 'rgba(0,0,0,' + (1 - Math.pow(0.84, dt)).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H);
-			drawGlow(.8 + .2 * Math.sin(now * .0008));
+			// Fade trails to transparent (not opaque black) via destination-out, so the
+			// static galaxy canvas behind c2d keeps showing through instead of getting
+			// slowly painted over with solid black.
+			ctx.save();
+			ctx.globalCompositeOperation = 'destination-out';
+			ctx.fillStyle = 'rgba(0,0,0,' + (1 - Math.pow(0.84, dt)).toFixed(3) + ')';
+			ctx.fillRect(0, 0, W, H);
+			ctx.restore();
 			updateBg(dt); drawBg(); drawStars(dt);
 			// NEW: fireworks + flower
 			updateFireworks(dt);
