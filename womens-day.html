@@ -153,11 +153,12 @@
 		}
 
 		#holdHint {
-			color: rgba(255, 182, 193, .85);
-			font-size: 13px;
+			color: #fff;
+			font-size: 15px;
+			font-weight: 700;
 			letter-spacing: 3px;
 			text-transform: uppercase;
-			text-shadow: 0 0 12px rgba(255, 100, 180, .6);
+			text-shadow: 0 0 10px rgba(255, 110, 180, 1), 0 0 20px rgba(255, 60, 150, .8), 0 1px 3px rgba(0, 0, 0, .5);
 			animation: pulse 2s ease-in-out infinite;
 		}
 
@@ -165,7 +166,7 @@
 
 			0%,
 			100% {
-				opacity: .5
+				opacity: .8
 			}
 
 			50% {
@@ -256,31 +257,48 @@
 			bottom: calc(28px + env(safe-area-inset-bottom));
 			left: 50%;
 			transform: translateX(-50%);
-			padding: 0;
-			background: none;
-			color: rgba(255, 255, 255, .75);
+			padding: 12px 30px;
+			background: linear-gradient(135deg, rgba(255, 110, 180, .4), rgba(130, 40, 170, .4));
+			backdrop-filter: blur(8px);
+			-webkit-backdrop-filter: blur(8px);
+			border: 1.5px solid rgba(255, 190, 225, .65);
+			border-radius: 999px;
+			color: #fff;
 			font-family: 'Quicksand', sans-serif;
-			font-size: 14px;
-			letter-spacing: 2px;
-			border: none;
+			font-size: 15px;
+			font-weight: 600;
+			letter-spacing: 1.5px;
 			cursor: pointer;
 			opacity: 0;
 			pointer-events: none;
-			transition: opacity .7s ease, color .2s, transform .15s;
+			transition: opacity .7s ease, transform .15s, box-shadow .2s;
 			z-index: 30;
-			text-shadow: 0 0 12px rgba(255, 150, 200, .6);
+			text-shadow: 0 0 10px rgba(255, 150, 200, .9);
+			box-shadow: 0 0 20px rgba(255, 100, 180, .5), inset 0 0 14px rgba(255, 255, 255, .1);
 			white-space: nowrap;
 		}
 
 		#btnContinue.show {
-			opacity: .8;
+			opacity: 1;
 			pointer-events: all;
+			animation: btnContinuePulse 2.2s ease-in-out infinite;
+		}
+
+		@keyframes btnContinuePulse {
+
+			0%,
+			100% {
+				box-shadow: 0 0 20px rgba(255, 100, 180, .5), inset 0 0 14px rgba(255, 255, 255, .1);
+			}
+
+			50% {
+				box-shadow: 0 0 30px rgba(255, 130, 195, .8), inset 0 0 18px rgba(255, 255, 255, .16);
+			}
 		}
 
 		#btnContinue:hover {
-			opacity: 1 !important;
-			color: #fff;
-			text-shadow: 0 0 18px rgba(255, 150, 200, 1);
+			transform: translateX(-50%) scale(1.05);
+			border-color: rgba(255, 220, 235, .9);
 		}
 
 		#btnContinue:active {
@@ -877,9 +895,9 @@
 		// Real bouquet photo — preferred over the hand-drawn version below for a far
 		// more realistic result. Preloaded early so it's ready well before it's needed.
 		var bouquetImg = new Image();
-		var bouquetImgReady = false;
+		var bouquetImgReady = false, bouquetImgFailed = false;
 		bouquetImg.onload = function () { bouquetImgReady = true; };
-		bouquetImg.onerror = function () { bouquetImgReady = false; };
+		bouquetImg.onerror = function () { bouquetImgFailed = true; };
 		bouquetImg.src = './bouquet.png';
 
 		// Shared 16-color quantize palette + pixel sampler, used by both the photo path
@@ -1150,7 +1168,18 @@
 			return { pixels: res.pixels, tw: S, th: S, canvas: fc, cx: res.cx, cy: res.cy };
 		}
 
+		var flowerWaitStart = null;
 		function startFlowerBouquet(onDone) {
+			// The photo is a couple MB — on a slower mobile connection it can still be
+			// loading at this point. Give it a few extra seconds instead of silently
+			// falling back to the hand-drawn flowers just because of timing.
+			if (!bouquetImgReady && !bouquetImgFailed) {
+				if (!flowerWaitStart) flowerWaitStart = Date.now();
+				if (Date.now() - flowerWaitStart < 5000) {
+					setTimeout(function () { startFlowerBouquet(onDone); }, 150);
+					return;
+				}
+			}
 			var res = buildFlowerBouquet();
 			if (!res.pixels.length) { if (onDone) onDone(); return; }
 
