@@ -428,20 +428,23 @@
 	<script>
 		var MP3_URL = './noi_nay_co_anh_3.mp3';
 		var PHOTOS = [
-			'./file/main.jpg', './file/1.jpg',
-			'./file/2.jpg', './file/8.jpg', './file/4.jpg', './file/5.jpg',
-			'./file/6.jpg', './file/3.jpg', './file/17.jpg', './file/10.jpg',
-			'./file/12.jpg', './file/13.jpg', './file/14.jpg', './file/15.jpg',
-			'./file/16.jpg', './file/9.jpg', './file/18.jpg', './file/19.jpg',
+			'./20-10/482986080_1836041327217702_838148000994299184_n.jpg',
+			'./20-10/484070375_1836041310551037_1211495794599239922_n.jpg',
+			'./20-10/484071311_1836041387217696_7756690517306256304_n.jpg',
+			'./20-10/484449639_1836041380551030_1999920715385558374_n.jpg',
+			'./20-10/608154018_2074595156695650_5132343781880219789_n.jpg',
+			'./20-10/608520648_2074595150028984_7215256171616238864_n.jpg',
+			'./20-10/611478167_2074595123362320_4458714859675407912_n.jpg',
+			'./20-10/729375290_2223000325188465_7998546068300335513_n.jpg',
 		];
-		var LETTER_TEXT = 'Chúc em một ngày 8/3 💐✨ thật ý nghĩa bên đó nhé! 🌸🇯🇵\nAnh biết làm việc ở Nhật không hề dễ dàng, nhưng nhìn cách em nỗ lực mỗi ngày, anh thực sự rất ngưỡng mộ. ✨\nChúc cô gái nơi "phương xa" luôn rạng rỡ, bình an và sớm đạt được những dự định của mình.\nĐừng làm việc quá sức, nhớ dành thời gian yêu chiều bản thân một chút nhé! 🎀 Gặt hái thật nhiều thành công, xinh đẹp và luôn nở nụ cười thật tươi nha! 🍀\n\n— From: Anh IT quèn ở Việt Nam! 🇻🇳❤️';
+		var LETTER_TEXT = 'Chúc em một ngày 20/10 thật vui vẻ và ý nghĩa nhé! 🌸💐✨\n\nCảm ơn em vì đã luôn cố gắng, luôn nỗ lực mỗi ngày và vẫn luôn giữ được sự đáng yêu, đặc biệt của riêng mình. ❤️\n\nAnh mong em sẽ luôn xinh đẹp, rạng rỡ, gặp thật nhiều may mắn và thuận lợi trên con đường phía trước. Dù có những ngày mệt mỏi hay không được như ý, cũng mong em luôn giữ được nụ cười và sự vui vẻ của mình nhé. 🎀🍀\n\nChúc em luôn mạnh khỏe, bình an và hạnh phúc. Mong rằng những điều tốt đẹp nhất sẽ luôn đến với em, không chỉ hôm nay mà cả những ngày về sau nữa. ❤️\n\n— From: anh T giấu tên! 🌷';
 
 		var c2d = document.getElementById('c2d');
 		var ctx = c2d.getContext('2d');
 		var W, H, CX, CY;
 
 		function resize() {
-			var dpr = window.devicePixelRatio || 1;
+			var dpr = Math.min(window.devicePixelRatio || 1, 2);
 			W = (window.visualViewport ? window.visualViewport.width : window.innerWidth);
 			H = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
 			CX = W / 2; CY = H / 2;
@@ -458,6 +461,7 @@
 				threeCamera.aspect = W / H;
 				threeCamera.updateProjectionMatrix();
 			}
+			buildGlowSprite();
 		}
 		window.addEventListener('resize', onResize);
 		if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
@@ -465,14 +469,55 @@
 		document.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
 
 		var PAL = ['rgba(255,30,80,', 'rgba(255,60,120,', 'rgba(255,0,60,', 'rgba(220,20,80,', 'rgba(255,100,140,', 'rgba(255,180,200,'];
+		var BG_COUNT = 3000, BG_ABINS = 12;
 		var bgParts = [];
-		for (var i = 0; i < 1600; i++) bgParts.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.3 + .3, vx: (Math.random() - .5) * .32, vy: (Math.random() - .5) * .32, ba: Math.random() * .5 + .12, col: PAL[Math.floor(Math.random() * PAL.length)], tw: Math.random() * Math.PI * 2 });
-		function updateBg() { for (var p of bgParts) { p.x += p.vx; p.y += p.vy; if (p.x < -2) p.x = W + 2; else if (p.x > W + 2) p.x = -2; if (p.y < -2) p.y = H + 2; else if (p.y > H + 2) p.y = -2; } }
-		function drawBg() { var t = Date.now() * .0007; for (var p of bgParts) { var a = p.ba * (.5 + .5 * Math.sin(t + p.tw)); ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fillStyle = p.col + a.toFixed(2) + ')'; ctx.fill(); } }
+		for (var i = 0; i < BG_COUNT; i++) bgParts.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.3 + .3, vx: (Math.random() - .5) * .32, vy: (Math.random() - .5) * .32, ba: Math.random() * .5 + .12, colIdx: Math.floor(Math.random() * PAL.length), tw: Math.random() * Math.PI * 2 });
+		function updateBg(dt) { for (var p of bgParts) { p.x += p.vx * dt; p.y += p.vy * dt; if (p.x < -2) p.x = W + 2; else if (p.x > W + 2) p.x = -2; if (p.y < -2) p.y = H + 2; else if (p.y > H + 2) p.y = -2; } }
+		// Persistent bucket arrays reused every frame (only .length = 0 to clear) — drawing
+		// thousands of particles this way costs zero per-frame allocation and at most
+		// (colors × alpha steps) fill() calls, so bumping the particle count stays cheap.
+		var bgBuckets = [];
+		for (var bc = 0; bc < PAL.length; bc++) { var row = []; for (var bb = 0; bb <= BG_ABINS; bb++) row.push([]); bgBuckets.push(row); }
+		function drawBg() {
+			var t = Date.now() * .0007;
+			for (var c = 0; c < bgBuckets.length; c++) for (var b = 0; b < bgBuckets[c].length; b++) bgBuckets[c][b].length = 0;
+			for (var i = 0; i < bgParts.length; i++) {
+				var p = bgParts[i];
+				var a = p.ba * (.5 + .5 * Math.sin(t + p.tw));
+				var bin = Math.round(a * BG_ABINS);
+				if (bin <= 0) continue;
+				bgBuckets[p.colIdx][bin].push(p);
+			}
+			for (var c2 = 0; c2 < bgBuckets.length; c2++) {
+				for (var b2 = 1; b2 <= BG_ABINS; b2++) {
+					var items = bgBuckets[c2][b2];
+					if (!items.length) continue;
+					ctx.fillStyle = PAL[c2] + (b2 / BG_ABINS).toFixed(3) + ')';
+					ctx.beginPath();
+					for (var j = 0; j < items.length; j++) { var pt = items[j]; ctx.moveTo(pt.x + pt.r, pt.y); ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2); }
+					ctx.fill();
+				}
+			}
+		}
 		var sstars = [];
 		setInterval(function () { if (sstars.length < 5) sstars.push({ x: Math.random() * W, y: Math.random() * H * .4, len: Math.random() * 130 + 60, spd: Math.random() * 6 + 4, ang: Math.PI / 6 + (Math.random() - .5) * .3, a: 1, w: Math.random() * 1.2 + .4 }); }, 1400);
-		function drawStars() { for (var i = sstars.length - 1; i >= 0; i--) { var s = sstars[i]; s.x += Math.cos(s.ang) * s.spd; s.y += Math.sin(s.ang) * s.spd; s.a -= .018; if (s.a <= 0) { sstars.splice(i, 1); continue; } var g = ctx.createLinearGradient(s.x, s.y, s.x - Math.cos(s.ang) * s.len, s.y - Math.sin(s.ang) * s.len); g.addColorStop(0, 'rgba(255,160,210,' + s.a + ')'); g.addColorStop(1, 'rgba(255,100,170,0)'); ctx.save(); ctx.strokeStyle = g; ctx.lineWidth = s.w; ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(255,100,170,.5)'; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - Math.cos(s.ang) * s.len, s.y - Math.sin(s.ang) * s.len); ctx.stroke(); ctx.restore(); } }
-		function drawGlow(i) { i = i || 1; var r = Math.min(W, H) * .34 * i; var g = ctx.createRadialGradient(CX, CY, 0, CX, CY, r); g.addColorStop(0, 'rgba(255,80,160,' + (.09 * i) + ')'); g.addColorStop(.5, 'rgba(200,40,130,' + (.045 * i) + ')'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+		function drawStars(dt) { for (var i = sstars.length - 1; i >= 0; i--) { var s = sstars[i]; s.x += Math.cos(s.ang) * s.spd * dt; s.y += Math.sin(s.ang) * s.spd * dt; s.a -= .018 * dt; if (s.a <= 0) { sstars.splice(i, 1); continue; } var g = ctx.createLinearGradient(s.x, s.y, s.x - Math.cos(s.ang) * s.len, s.y - Math.sin(s.ang) * s.len); g.addColorStop(0, 'rgba(255,160,210,' + s.a + ')'); g.addColorStop(1, 'rgba(255,100,170,0)'); ctx.save(); ctx.strokeStyle = g; ctx.lineWidth = s.w; ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(255,100,170,.5)'; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - Math.cos(s.ang) * s.len, s.y - Math.sin(s.ang) * s.len); ctx.stroke(); ctx.restore(); } }
+		// Pre-rendered glow sprite: avoids creating a radial gradient every single frame (60x/sec)
+		var glowSprite = null, glowBaseR = 0;
+		function buildGlowSprite() {
+			glowBaseR = Math.min(W, H) * .34;
+			var size = Math.max(2, Math.ceil(glowBaseR * 2));
+			var gc = document.createElement('canvas'); gc.width = size; gc.height = size;
+			var gctx = gc.getContext('2d');
+			var g = gctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, glowBaseR);
+			g.addColorStop(0, 'rgba(255,80,160,.09)');
+			g.addColorStop(.5, 'rgba(200,40,130,.045)');
+			g.addColorStop(1, 'rgba(0,0,0,0)');
+			gctx.fillStyle = g; gctx.fillRect(0, 0, size, size);
+			glowSprite = gc;
+		}
+		buildGlowSprite();
+		function drawGlow(i) { i = i || 1; var r = glowBaseR * i, size = r * 2; ctx.save(); ctx.globalAlpha = Math.min(1, i); ctx.drawImage(glowSprite, CX - r, CY - r, size, size); ctx.restore(); }
 
 		var phase = 0;
 		var PHASE_IDS = ['phaseLoading', 'phaseHold', 'phaseText', null, null, null];
@@ -493,10 +538,12 @@
 		holdBtn.addEventListener('touchstart', function (e) { e.preventDefault(); startHold(); }, { passive: false });
 		window.addEventListener('mouseup', endHold); window.addEventListener('touchend', endHold); window.addEventListener('touchcancel', endHold);
 
-		// ====== FIREWORKS SYSTEM (optimized: batch draw by color) ======
+		// ====== FIREWORKS SYSTEM (optimized: persistent color buckets, no per-frame allocation) ======
 		var fireworks = [];
 		var rockets = [];
+		var flashes = [];
 		var fireworkActive = false;
+		var FW_MAX = 2600; // hard cap so a denser finale can never spiral into real lag
 
 		var FW_PALETTES = [
 			['#ff2266', '#ff66aa', '#ff99cc', '#ffccee', '#ffffff'],
@@ -505,39 +552,66 @@
 			['#ff44bb', '#ff0066', '#ffaacc', '#cc0055', '#ff88cc'],
 			['#00ffaa', '#ff66dd', '#ffff00', '#ff4499', '#aaffff']
 		];
+		// Flatten to one indexed list so particles can carry a numeric colIdx (cheap to
+		// bucket) instead of a string color (expensive as an object-key every frame).
+		var FW_FLAT = [].concat.apply([], FW_PALETTES);
+		var fwBuckets = []; for (var fwi = 0; fwi < FW_FLAT.length; fwi++) fwBuckets.push([]);
 
-		function launchFirework(x, y, palette) {
-			var cols = palette || FW_PALETTES[0];
-			var count = 80 + Math.floor(Math.random() * 40);
+		function launchFirework(x, y, paletteIdx, big) {
+			var base = (paletteIdx == null ? Math.floor(Math.random() * FW_PALETTES.length) : paletteIdx) * 5;
+			var count = big ? (170 + Math.floor(Math.random() * 70)) : (110 + Math.floor(Math.random() * 50));
+			var room = FW_MAX - fireworks.length;
+			if (count > room) count = Math.max(0, room);
 			for (var i = 0; i < count; i++) {
 				var ang = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.25;
-				var spd = Math.random() * 4.5 + 2;
+				var spd = (big ? Math.random() * 5.5 + 2.5 : Math.random() * 4.5 + 2);
 				fireworks.push({
 					x: x, y: y,
 					px: x, py: y,   // prev pos for trail (1-segment only, no array)
 					vx: Math.cos(ang) * spd,
 					vy: Math.sin(ang) * spd,
 					alpha: 1,
-					col: cols[Math.floor(Math.random() * cols.length)],
+					colIdx: base + Math.floor(Math.random() * 5),
 					r: Math.random() * 2 + 0.8,
 					gravity: 0.06 + Math.random() * 0.03,
 					fade: 0.013 + Math.random() * 0.009
 				});
 			}
+			// Quick expanding shockwave ring at the burst origin — cheap (one stroked
+			// circle, no gradient) but reads as a much bigger "boom".
+			flashes.push({ x: x, y: y, r: 2, vr: big ? 7.5 : 5.5, alpha: big ? 0.9 : 0.7, fade: big ? 0.11 : 0.15, lw: big ? 4 : 3, col: FW_FLAT[base + 4] || '#ffffff' });
 		}
 
-		function launchRocket(x) {
+		function launchRocket(x, big) {
 			rockets.push({
 				x: x || CX + (Math.random() - 0.5) * W * 0.5,
 				y: H,
 				vy: -(Math.random() * 9 + 13),
 				vx: (Math.random() - 0.5) * 1.5,
 				targetY: H * 0.12 + Math.random() * H * 0.3,
-				px: 0, py: H
+				px: 0, py: H,
+				big: !!big
 			});
 		}
 
-		function updateFireworks() {
+		function updateFlashes(dt) {
+			if (!flashes.length) return;
+			ctx.save();
+			ctx.globalCompositeOperation = 'lighter';
+			for (var i = flashes.length - 1; i >= 0; i--) {
+				var f = flashes[i];
+				f.r += f.vr * dt;
+				f.alpha -= f.fade * dt;
+				if (f.alpha <= 0) { flashes.splice(i, 1); continue; }
+				ctx.globalAlpha = f.alpha;
+				ctx.strokeStyle = f.col;
+				ctx.lineWidth = f.lw;
+				ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2); ctx.stroke();
+			}
+			ctx.restore();
+		}
+
+		function updateFireworks(dt) {
 			var i, p, r;
 
 			// --- rockets ---
@@ -547,9 +621,9 @@
 			for (i = rockets.length - 1; i >= 0; i--) {
 				r = rockets[i];
 				r.px = r.x; r.py = r.y;
-				r.x += r.vx;
-				r.y += r.vy;
-				r.vy += 0.22;
+				r.x += r.vx * dt;
+				r.y += r.vy * dt;
+				r.vy += 0.22 * dt;
 				// trail line
 				ctx.globalAlpha = 0.55;
 				ctx.strokeStyle = '#ffccee';
@@ -566,41 +640,42 @@
 				ctx.fill();
 
 				if (r.y <= r.targetY || r.vy >= 0) {
-					launchFirework(r.x, r.y, FW_PALETTES[Math.floor(Math.random() * FW_PALETTES.length)]);
+					launchFirework(r.x, r.y, Math.floor(Math.random() * FW_PALETTES.length), r.big);
 					rockets.splice(i, 1);
 				}
 			}
 			ctx.restore();
 
-			// --- firework particles: batch by color ---
+			updateFlashes(dt);
+
+			// --- firework particles ---
 			// Step 1: update physics
+			var fric = Math.pow(0.955, dt);
 			for (i = fireworks.length - 1; i >= 0; i--) {
 				p = fireworks[i];
 				p.px = p.x; p.py = p.y;
-				p.x += p.vx;
-				p.y += p.vy;
-				p.vx *= 0.955;
-				p.vy *= 0.955;
-				p.vy += p.gravity;
-				p.alpha -= p.fade;
+				p.x += p.vx * dt;
+				p.y += p.vy * dt;
+				p.vx *= fric;
+				p.vy *= fric;
+				p.vy += p.gravity * dt;
+				p.alpha -= p.fade * dt;
 				if (p.alpha <= 0) { fireworks.splice(i, 1); }
 			}
 
 			if (!fireworks.length) return;
 
-			// Step 2: group by color
-			var byCol = {};
-			for (i = 0; i < fireworks.length; i++) {
-				p = fireworks[i];
-				if (!byCol[p.col]) byCol[p.col] = [];
-				byCol[p.col].push(p);
-			}
+			// Step 2: bucket by color index using persistent arrays (no per-frame allocation)
+			for (i = 0; i < fwBuckets.length; i++) fwBuckets[i].length = 0;
+			for (i = 0; i < fireworks.length; i++) { p = fireworks[i]; fwBuckets[p.colIdx].push(p); }
 
-			// Step 3: draw each color group in one pass (no shadowBlur - use additive glow via globalCompositeOperation)
+			// Step 3: draw each color bucket in one pass (additive glow via globalCompositeOperation)
 			ctx.save();
 			ctx.globalCompositeOperation = 'lighter';
-			for (var col in byCol) {
-				var group = byCol[col];
+			for (var c = 0; c < fwBuckets.length; c++) {
+				var group = fwBuckets[c];
+				if (!group.length) continue;
+				var col = FW_FLAT[c];
 				ctx.strokeStyle = col;
 				ctx.fillStyle = col;
 				// trails
@@ -629,16 +704,17 @@
 
 		function startFireworks(duration, onDone) {
 			fireworkActive = true;
-			rockets = []; fireworks = [];
-			// Nhiều đợt hơn, cuối có grand finale
-			var burstTimes = [0, 180, 420, 700, 1050, 1450, 1900, 2400, 2950, 3200, 3450];
+			rockets = []; fireworks = []; flashes = [];
+			// Nhiều đợt hơn, dồn dập hơn, cuối có grand finale lớn
+			var burstTimes = [0, 150, 350, 600, 900, 1250, 1600, 2000, 2450, 2900, 3150, 3400, 3600];
 			var endTime = Date.now() + (duration || 4500);
 			burstTimes.forEach(function (delay) {
 				setTimeout(function () {
 					if (Date.now() <= endTime + 200) {
-						var n = (delay >= 3200) ? 5 : 2 + Math.floor(Math.random() * 2);
+						var isFinale = delay >= 3150;
+						var n = isFinale ? 7 : 3 + Math.floor(Math.random() * 2);
 						for (var i = 0; i < n; i++) {
-							(function (ii) { setTimeout(function () { launchRocket(); }, ii * 130); })(i);
+							(function (ii) { setTimeout(function () { launchRocket(null, isFinale); }, ii * 110); })(i);
 						}
 					}
 				}, delay);
@@ -669,8 +745,8 @@
 
 			// Toàn bộ vẽ ở gốc toạ độ rồi xoay tổng thể -28° (như emoji)
 			fctx.save();
-			fctx.translate(S * 0.52, S * 0.52);
-			fctx.rotate(-0.48); // ~-28 deg
+			fctx.translate(S * 0.5, S * 0.74);
+			fctx.rotate(-0.22); // nghiêng nhẹ ~-12.6 deg (giữ cân đối, không bị lệch)
 
 			var U = S * 0.01; // đơn vị cơ bản
 
@@ -841,30 +917,44 @@
 				fctx.restore();
 			}
 
-			// ── BỐ CỤC HOA (trải từ dưới lên, phân tán như 💐) ──
+			function drawFiller(fx, fy, r) {
+				// Hoa bi nhỏ (baby's breath) lấp khoảng trống giữa các hoa chính,
+				// giúp bó hoa nhìn liền một khối thay vì từng icon rời rạc.
+				fctx.save(); fctx.globalAlpha = 0.9; fctx.fillStyle = '#fffdf5';
+				fctx.beginPath(); fctx.arc(fx, fy, r, 0, Math.PI * 2); fctx.fill();
+				fctx.fillStyle = '#ffe9a8'; fctx.globalAlpha = 0.6;
+				fctx.beginPath(); fctx.arc(fx - r * 0.3, fy - r * 0.3, r * 0.4, 0, Math.PI * 2); fctx.fill();
+				fctx.restore();
+			}
+
+			// ── BỐ CỤC HOA: đối xứng trái/phải theo trục giữa để không bị lệch ──
 			var R = U * 11;
 
 			// Hàng dưới (sát miệng gói)
-			drawRose(-16 * U, -16 * U, R * 1.05, 2, '#ff4488', '#cc0044');
-			drawRose(14 * U, -14 * U, R * 0.95, 2, '#ff6622', '#cc3300');
-			drawTulip(0 * U, -20 * U, R * 0.9, '#ff2255', '#dd0033');
+			drawTulip(0, -20 * U, R * 0.95, '#ff2255', '#dd0033');
+			drawRose(-16 * U, -18 * U, R * 1.0, 2, '#ff4488', '#cc0044');
+			drawRose(16 * U, -18 * U, R * 1.0, 2, '#ff4488', '#cc0044');
 
 			// Hàng giữa
-			drawRose(-24 * U, -28 * U, R * 0.9, 2, '#ff66aa', '#ee0066');
-			drawDaisy(22 * U, -26 * U, R * 0.85, 8, '#fffde7', '#fff176');
-			drawRose(2 * U, -34 * U, R * 1.1, 3, '#ff2266', '#aa0033');
-			drawTulip(-10 * U, -38 * U, R * 0.8, '#ff44cc', '#bb0099');
+			drawDaisy(-28 * U, -30 * U, R * 0.85, 8, '#fffde7', '#fff176');
+			drawDaisy(28 * U, -30 * U, R * 0.85, 8, '#fffde7', '#fff176');
+			drawRose(0, -34 * U, R * 1.05, 3, '#ff2266', '#aa0033');
 
 			// Hàng trên
-			drawDaisy(-20 * U, -44 * U, R * 0.75, 7, '#ff99cc', '#ff3399');
-			drawRose(18 * U, -42 * U, R * 0.85, 2, '#ff8833', '#dd4400');
-			drawRose(-2 * U, -50 * U, R * 0.95, 2, '#ff55aa', '#cc0077');
-			drawTulip(10 * U, -52 * U, R * 0.7, '#ffaaff', '#cc44cc');
+			drawRose(-18 * U, -40 * U, R * 0.85, 2, '#ff8833', '#dd4400');
+			drawRose(18 * U, -40 * U, R * 0.85, 2, '#ff8833', '#dd4400');
+			drawTulip(0, -44 * U, R * 0.78, '#ff44cc', '#bb0099');
 
 			// Đỉnh (loe rộng như 💐)
-			drawDaisy(-28 * U, -54 * U, R * 0.65, 6, '#ffffff', '#ffeeaa');
-			drawRose(26 * U, -52 * U, R * 0.7, 2, '#ff3377', '#bb0055');
-			drawDaisy(0 * U, -62 * U, R * 0.6, 8, '#ffccee', '#ff88bb');
+			drawDaisy(-24 * U, -52 * U, R * 0.68, 7, '#ff99cc', '#ff3399');
+			drawDaisy(24 * U, -52 * U, R * 0.68, 7, '#ff99cc', '#ff3399');
+			drawRose(0, -58 * U, R * 0.7, 2, '#ff3377', '#bb0055');
+
+			// Hoa bi nhỏ lấp khe hở, đối xứng hai bên
+			[[-10, -24], [10, -24], [-23, -22], [23, -22], [-14, -46], [14, -46],
+			[-32, -40], [32, -40], [-17, -58], [17, -58], [0, -50], [0, -26]].forEach(function (f) {
+				drawFiller(f[0] * U, f[1] * U, R * (0.16 + Math.random() * 0.08));
+			});
 
 			fctx.restore(); // kết thúc rotate tổng thể
 
@@ -888,6 +978,10 @@
 				var c = QPAL[best];
 				return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')';
 			}
+			// Track the actual bounding box of the drawing (not the full SxS canvas) so the
+			// final piece can be centered on its real content — otherwise the padding left
+			// by the rotated artwork makes it sit off-center / "lệch" on screen.
+			var minX = S, maxX = 0, minY = S, maxY = 0;
 			for (var fy2 = 0; fy2 < S; fy2 += step) {
 				for (var fx2 = 0; fx2 < S; fx2 += step) {
 					var idx = (fy2 * S + fx2) * 4;
@@ -896,18 +990,22 @@
 							x: fx2, y: fy2,
 							col: quantize(data[idx], data[idx + 1], data[idx + 2])
 						});
+						if (fx2 < minX) minX = fx2; if (fx2 > maxX) maxX = fx2;
+						if (fy2 < minY) minY = fy2; if (fy2 > maxY) maxY = fy2;
 					}
 				}
 			}
-			return { pixels: px, tw: S, th: S };
+			var contentCX = px.length ? (minX + maxX) / 2 : S / 2;
+			var contentCY = px.length ? (minY + maxY) / 2 : S / 2;
+			return { pixels: px, tw: S, th: S, canvas: fc, cx: contentCX, cy: contentCY };
 		}
 
 		function startFlowerBouquet(onDone) {
 			var res = buildFlowerBouquet();
 			if (!res.pixels.length) { if (onDone) onDone(); return; }
 
-			var offX = CX - res.tw / 2;
-			var offY = CY - res.th / 2 - H * 0.05;
+			var offX = CX - res.cx;
+			var offY = CY - H * 0.05 - res.cy;
 
 			var parts = res.pixels.map(function (px) {
 				var tx = offX + px.x;
@@ -946,6 +1044,7 @@
 
 			flowerState = {
 				parts: parts,
+				canvas: res.canvas, offX: offX, offY: offY, tw: res.tw, th: res.th,
 				globalAlpha: 1,
 				startTime: Date.now(),
 				assembled: false,
@@ -954,7 +1053,7 @@
 			};
 		}
 
-		function updateFlowerBouquet() {
+		function updateFlowerBouquet(dt) {
 			if (!flowerState) return;
 			var parts = flowerState.parts;
 			var i, p;
@@ -963,7 +1062,7 @@
 			var allAssembled = true;
 			for (i = 0; i < parts.length; i++) {
 				p = parts[i];
-				p.t = Math.min(1, p.t + 0.026);
+				p.t = Math.min(1, p.t + 0.026 * dt);
 				if (p.t < 0) { allAssembled = false; continue; }
 				var e = 1 - Math.pow(1 - Math.max(0, p.t), 3);
 				p.cx = p.sx + (p.tx - p.sx) * e;
@@ -972,32 +1071,41 @@
 				p.alpha = Math.min(1, p.t * 2) * flowerState.globalAlpha;
 			}
 
-			// Step 2: batch draw by color
-			var byCol = {};
-			for (i = 0; i < parts.length; i++) {
-				p = parts[i];
-				if (p.alpha <= 0) continue;
-				if (!byCol[p.col]) byCol[p.col] = [];
-				byCol[p.col].push(p);
-			}
-			ctx.save();
-			ctx.shadowBlur = 0;
-			for (var col in byCol) {
-				var group = byCol[col];
-				ctx.fillStyle = col;
-				ctx.globalAlpha = 1;
-				ctx.beginPath();
-				for (i = 0; i < group.length; i++) {
-					p = group[i];
-					// approximate alpha by skipping near-invisible
-					if (p.alpha < 0.05) continue;
-					ctx.moveTo(p.cx + p.r, p.cy);
-					ctx.arc(p.cx, p.cy, p.r, 0, Math.PI * 2);
+			if (!flowerState.assembled) {
+				// Step 2 (still flying in): batch-draw the particle swarm by color
+				var byCol = {};
+				for (i = 0; i < parts.length; i++) {
+					p = parts[i];
+					if (p.alpha <= 0) continue;
+					if (!byCol[p.col]) byCol[p.col] = [];
+					byCol[p.col].push(p);
 				}
+				ctx.save();
+				ctx.shadowBlur = 0;
+				for (var col in byCol) {
+					var group = byCol[col];
+					ctx.fillStyle = col;
+					ctx.globalAlpha = 1;
+					ctx.beginPath();
+					for (i = 0; i < group.length; i++) {
+						p = group[i];
+						// approximate alpha by skipping near-invisible
+						if (p.alpha < 0.05) continue;
+						ctx.moveTo(p.cx + p.r, p.cy);
+						ctx.arc(p.cx, p.cy, p.r, 0, Math.PI * 2);
+					}
+					ctx.globalAlpha = flowerState.globalAlpha;
+					ctx.fill();
+				}
+				ctx.restore();
+			} else {
+				// Once assembled, show the real illustration (smooth gradients, no
+				// quantized-color blotches) instead of holding thousands of flat dots.
+				ctx.save();
 				ctx.globalAlpha = flowerState.globalAlpha;
-				ctx.fill();
+				ctx.drawImage(flowerState.canvas, flowerState.offX, flowerState.offY, flowerState.tw, flowerState.th);
+				ctx.restore();
 			}
-			ctx.restore();
 
 			// Hold & fade logic
 			if (allAssembled && !flowerState.assembled) {
@@ -1032,9 +1140,25 @@
 			});
 		}
 
-		var LINES = ['Chúc Mừng', 'Ngày Quốc Tế', 'Phụ Nữ 🌸'];
+		var LINES = ['Gửi Em', 'Cô Gái Đặc Biệt', '20/10 Vui Vẻ Nhé 🌸'];
 		var particleTextState = null;
-		function sampleTextPixels(text, fontSize, color) { var tc = document.getElementById('textCanvas'), tctx = tc.getContext('2d'); tc.width = Math.min(W, 700); tc.height = fontSize * 1.7; tctx.clearRect(0, 0, tc.width, tc.height); tctx.font = '700 ' + fontSize + 'px \'Dancing Script\',cursive'; tctx.fillStyle = color; tctx.textAlign = 'center'; tctx.textBaseline = 'middle'; tctx.fillText(text, tc.width / 2, tc.height / 2); var data = tctx.getImageData(0, 0, tc.width, tc.height).data, px = []; for (var y = 0; y < tc.height; y += 3)for (var x = 0; x < tc.width; x += 3)if (data[(y * tc.width + x) * 4 + 3] > 80) px.push({ x: x, y: y }); return { pixels: px, tw: tc.width, th: tc.height }; }
+		// Auto-shrinks the font so the line always fits the screen width (no more clipped
+		// letters on narrow phones), and scales the pixel-sampling step with the final font
+		// size so small mobile text still reads as dense, clean strokes instead of sparse dots.
+		function sampleTextPixels(text, fontSize, color) {
+			var tc = document.getElementById('textCanvas'), tctx = tc.getContext('2d');
+			var maxW = Math.min(W * .92, 700);
+			tctx.font = '700 ' + fontSize + 'px \'Dancing Script\',cursive';
+			var mw = tctx.measureText(text).width;
+			if (mw > maxW) { fontSize = Math.max(18, Math.floor(fontSize * (maxW / mw))); tctx.font = '700 ' + fontSize + 'px \'Dancing Script\',cursive'; mw = tctx.measureText(text).width; }
+			tc.width = Math.ceil(mw) + 40; tc.height = fontSize * 1.7;
+			tctx.clearRect(0, 0, tc.width, tc.height);
+			tctx.font = '700 ' + fontSize + 'px \'Dancing Script\',cursive'; tctx.fillStyle = color; tctx.textAlign = 'center'; tctx.textBaseline = 'middle'; tctx.fillText(text, tc.width / 2, tc.height / 2);
+			var step = Math.max(1, Math.round(fontSize / 42));
+			var data = tctx.getImageData(0, 0, tc.width, tc.height).data, px = [];
+			for (var y = 0; y < tc.height; y += step)for (var x = 0; x < tc.width; x += step)if (data[(y * tc.width + x) * 4 + 3] > 80) px.push({ x: x, y: y });
+			return { pixels: px, tw: tc.width, th: tc.height };
+		}
 		function startParticleText() { particleTextState = { lines: [], done: false }; scheduleNextLine(0); }
 		function scheduleNextLine(li) {
 			if (li >= LINES.length) { particleTextState.done = true; return; }
@@ -1053,7 +1177,7 @@
 			particleTextState.lines[li] = { parts: parts, alpha: 1, startTime: Date.now() };
 			setTimeout(function () { scheduleNextLine(li + 1); }, 900);
 		}
-		function updateParticleText() {
+		function updateParticleText(dt) {
 			if (!particleTextState) return;
 			var li, i, p, line;
 			for (li = 0; li < particleTextState.lines.length; li++) {
@@ -1062,13 +1186,14 @@
 				if (line.exploding) {
 					// Explode: particles bay ra ngoài
 					var allGone = true;
+					var expFric = Math.pow(1.07, dt);
 					for (i = 0; i < line.parts.length; i++) {
 						p = line.parts[i];
 						if (p.alpha <= 0) continue;
 						allGone = false;
-						p.cx += p.ex; p.cy += p.ey;
-						p.ex *= 1.07; p.ey *= 1.07; // tăng tốc
-						p.alpha = Math.max(0, p.alpha - 0.032);
+						p.cx += p.ex * dt; p.cy += p.ey * dt;
+						p.ex *= expFric; p.ey *= expFric; // tăng tốc
+						p.alpha = Math.max(0, p.alpha - 0.032 * dt);
 					}
 					if (allGone) line.alpha = 0;
 					continue;
@@ -1076,7 +1201,7 @@
 				var age = (Date.now() - line.startTime) / 1000;
 				for (i = 0; i < line.parts.length; i++) {
 					p = line.parts[i];
-					p.t = Math.min(1, p.t + .07);
+					p.t = Math.min(1, p.t + .07 * dt);
 					if (p.t < 0) continue;
 					var e = 1 - Math.pow(1 - Math.max(0, p.t), 3);
 					p.cx = p.sx + (p.tx - p.sx) * e;
@@ -1132,12 +1257,26 @@
 		function validImgs() { return imgObjs.filter(function (x) { return x && x.naturalWidth > 0; }); }
 
 		var assembleState = null;
+		// The piece grid used to only sample straight from the original, full-resolution
+		// photo (several MP) — doing that for ~200+ tiny drawImage crops every frame was
+		// the real source of the lag. Downscale once to a sane size first, same fix as
+		// the sphere textures.
+		function makeAssembleSource(img) {
+			var maxDim = 900;
+			var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+			var scale = Math.min(1, maxDim / Math.max(iw, ih));
+			var tw = Math.max(1, Math.round(iw * scale)), th = Math.max(1, Math.round(ih * scale));
+			var c = document.createElement('canvas'); c.width = tw; c.height = th;
+			c.getContext('2d').drawImage(img, 0, 0, tw, th);
+			return c;
+		}
 		function startAssemble() {
 			goPhase(3);
-			var img = validImgs()[0];
-			if (!img) { setTimeout(startSphere, 1000); return; }
-			var TW = Math.min(W * .6, 320), TH = TW * (img.naturalHeight / img.naturalWidth) || TW * 1.3;
-			var COLS = 12, ROWS = Math.round(COLS * (TH / TW)), pw = TW / COLS, ph = TH / ROWS;
+			var rawImg = validImgs()[0];
+			if (!rawImg) { setTimeout(startSphere, 1000); return; }
+			var img = makeAssembleSource(rawImg);
+			var TW = Math.min(W * .6, 320), TH = TW * (img.height / img.width) || TW * 1.3;
+			var COLS = 16, ROWS = Math.round(COLS * (TH / TW)), pw = TW / COLS, ph = TH / ROWS;
 			var ox = CX - TW / 2, oy = CY - TH / 2, pieces = [];
 			for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) {
 				var tx = ox + c * pw, ty = oy + r * ph;
@@ -1145,8 +1284,8 @@
 				pieces.push({
 					sx: tx + Math.cos(angle) * dist, sy: ty + Math.sin(angle) * dist,
 					tx: tx, ty: ty, pw: pw, ph: ph,
-					sx0: c * pw / TW * img.naturalWidth, sy0: r * ph / TH * img.naturalHeight,
-					sw: pw / TW * img.naturalWidth, sh: ph / TH * img.naturalHeight,
+					sx0: c * pw / TW * img.width, sy0: r * ph / TH * img.height,
+					sw: pw / TW * img.width, sh: ph / TH * img.height,
 					t: 0, phase: 'assemble', cx: 0, cy: 0,
 					vx: 0, vy: 0, spin: 0, spinV: (Math.random() - .5) * .08, alpha: 1
 				});
@@ -1154,21 +1293,22 @@
 			assembleState = { img: img, pieces: pieces, TW: TW, TH: TH, ox: ox, oy: oy, holdStart: null, shatterStarted: false };
 		}
 
-		function updateAssemble() {
+		function updateAssemble(dt) {
 			if (!assembleState) return;
 			var img = assembleState.img, pieces = assembleState.pieces, TW = assembleState.TW, TH = assembleState.TH;
 			var allDone = true;
+			var shatterFric = Math.pow(.97, dt);
 			for (var i = 0; i < pieces.length; i++) {
 				var p = pieces[i];
 				if (p.phase === 'assemble') {
-					p.t = Math.min(1, p.t + .016);
+					p.t = Math.min(1, p.t + .016 * dt);
 					var e = 1 - Math.pow(1 - p.t, 3);
 					p.cx = p.sx + (p.tx - p.sx) * e; p.cy = p.sy + (p.ty - p.sy) * e;
 					if (p.t < 1) allDone = false;
 				} else if (p.phase === 'shatter') {
-					p.vx *= .97; p.vy *= .97; p.vy += .08;
-					p.cx += p.vx; p.cy += p.vy;
-					p.spin += p.spinV; p.alpha -= .018;
+					p.vx *= shatterFric; p.vy *= shatterFric; p.vy += .08 * dt;
+					p.cx += p.vx * dt; p.cy += p.vy * dt;
+					p.spin += p.spinV * dt; p.alpha -= .018 * dt;
 					if (p.alpha > 0) allDone = false;
 				}
 			}
@@ -1182,7 +1322,10 @@
 				ctx.drawImage(img, p.sx0, p.sy0, p.sw, p.sh, 0, 0, p.pw, p.ph);
 				ctx.restore();
 			}
-			if (assembleState.holdStart) {
+			// Only glow the frame while the photo is still held assembled — "holdStart" never
+			// got cleared once the shatter kicked in, so the pink border used to keep being
+			// drawn on top of the flying shards for the whole shatter animation.
+			if (assembleState.holdStart && pieces[0] && pieces[0].phase === 'assemble') {
 				var prog = Math.min(1, (Date.now() - assembleState.holdStart) / 500);
 				ctx.save(); ctx.shadowBlur = 30 * prog; ctx.shadowColor = 'rgba(255,80,160,.9)';
 				ctx.strokeStyle = 'rgba(255,120,190,' + (0.7 * prog) + ')'; ctx.lineWidth = 3;
@@ -1208,7 +1351,28 @@
 		}
 
 		var threeScene = null, threeCamera = null, threeRenderer = null;
-		var sphereGroup = null, threeRunning = false, threeStars = null;
+		var sphereGroup = null, threeRunning = false, threeStars = null, threeShattering = false;
+
+		// Downscale each photo onto a small canvas before it becomes a GPU texture.
+		// The raw camera photos (up to ~12MP) were being uploaded full-size and squeezed
+		// onto tiny sphere tiles with mipmaps disabled — that's what caused the slow
+		// build and the blurry/aliased look. A ~640px source is already more detail
+		// than a small tile needs, and mipmaps make minification crisp instead of mushy.
+		function makeSphereTexture(img) {
+			var maxDim = 640;
+			var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+			var scale = Math.min(1, maxDim / Math.max(iw, ih));
+			var tw = Math.max(1, Math.round(iw * scale)), th = Math.max(1, Math.round(ih * scale));
+			var c = document.createElement('canvas'); c.width = tw; c.height = th;
+			c.getContext('2d').drawImage(img, 0, 0, tw, th);
+			var t = new THREE.Texture(c);
+			t.minFilter = THREE.LinearMipmapLinearFilter;
+			t.magFilter = THREE.LinearFilter;
+			t.generateMipmaps = true;
+			if (threeRenderer) t.anisotropy = threeRenderer.capabilities.getMaxAnisotropy();
+			t.needsUpdate = true;
+			return t;
+		}
 
 		function initThree() {
 			if (typeof THREE === 'undefined') return false;
@@ -1219,7 +1383,7 @@
 			threeCamera.position.z = isMobile ? 10 : 13;
 			threeRenderer = new THREE.WebGLRenderer({ canvas: c3d, antialias: true, alpha: true, powerPreference: 'high-performance' });
 			threeRenderer.setSize(W, H);
-			threeRenderer.setPixelRatio(window.devicePixelRatio);
+			threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 			threeRenderer.setClearColor(0x000000, 0);
 			return true;
 		}
@@ -1256,23 +1420,44 @@
 			var visW = visH * (W / H);
 			var radius = Math.min(visH, visW) * 0.72 / 2;
 
-			var ROWS = 7, meshList = [], imgIdx = 0;
-			var aspect = valid[0].naturalWidth / valid[0].naturalHeight || 0.8;
-			var matList = valid.map(function (img) { var t = new THREE.Texture(img); t.minFilter = THREE.LinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true; return new THREE.MeshBasicMaterial({ map: t, side: THREE.FrontSide }); });
+			// Geodesic-style facets: every row shares the exact same longitude lines (COLS
+			// fixed across all rows), so each tile is built from its true spherical corner
+			// points instead of an approximated flat rectangle. Neighboring tiles' corners
+			// are then mathematically identical — a seamless "crystal ball" of facets with
+			// zero gaps, instead of the old per-row PlaneGeometry approximation that left
+			// visible seams wherever adjacent rows picked a different column count.
+			var ROWS = 7, COLS = ROWS * 2, meshList = [], imgIdx = 0;
+			var matList = valid.map(function (img) { return new THREE.MeshBasicMaterial({ map: makeSphereTexture(img), side: THREE.DoubleSide }); });
+
+			function sphereCorner(phi, theta) {
+				return {
+					x: radius * Math.sin(phi) * Math.cos(theta),
+					y: radius * Math.cos(phi),
+					z: radius * Math.sin(phi) * Math.sin(theta)
+				};
+			}
 
 			for (var ri = 0; ri < ROWS; ri++) {
-				var phi = Math.PI * (ri + 0.5) / ROWS, dPhi = Math.PI / ROWS;
-				var ringR = radius * Math.sin(phi), arcH = dPhi * radius;
-				var COLS = Math.max(3, Math.round(2 * Math.PI * ringR / (arcH * aspect)));
-				var tileW = (2 * Math.PI * ringR / COLS) * 1.15, tileH = arcH * 1.15;
-				var geo = new THREE.PlaneGeometry(tileW, tileH);
+				var phi0 = Math.PI * ri / ROWS, phi1 = Math.PI * (ri + 1) / ROWS, phiMid = (phi0 + phi1) / 2;
 				for (var ci = 0; ci < COLS; ci++) {
-					var theta = (2 * Math.PI * (ci + 0.5)) / COLS;
-					var fx = radius * Math.sin(phi) * Math.cos(theta), fy = radius * Math.cos(phi), fz = radius * Math.sin(phi) * Math.sin(theta);
+					var theta0 = 2 * Math.PI * ci / COLS, theta1 = 2 * Math.PI * (ci + 1) / COLS, thetaMid = (theta0 + theta1) / 2;
+					var p00 = sphereCorner(phi0, theta0), p01 = sphereCorner(phi0, theta1);
+					var p10 = sphereCorner(phi1, theta0), p11 = sphereCorner(phi1, theta1);
+					var c = sphereCorner(phiMid, thetaMid);
+					var geo = new THREE.BufferGeometry();
+					geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+						p00.x - c.x, p00.y - c.y, p00.z - c.z,
+						p01.x - c.x, p01.y - c.y, p01.z - c.z,
+						p10.x - c.x, p10.y - c.y, p10.z - c.z,
+						p11.x - c.x, p11.y - c.y, p11.z - c.z
+					]), 3));
+					geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]), 2));
+					geo.setIndex([0, 2, 1, 1, 2, 3]);
+					// MeshBasicMaterial ignores normals entirely, so no need to compute them.
+
 					var mesh = new THREE.Mesh(geo, matList[imgIdx % matList.length]); imgIdx++;
-					mesh.position.set(fx, fy, fz); mesh.lookAt(0, 0, 0); mesh.rotateY(Math.PI);
 					var ang = Math.random() * Math.PI * 2, elv = (Math.random() - .5) * Math.PI, d = radius * 4 + Math.random() * radius * 2;
-					mesh.userData = { fx: fx, fy: fy, fz: fz, sx: Math.cos(elv) * Math.cos(ang) * d, sy: Math.sin(elv) * d * 0.5, sz: Math.cos(elv) * Math.sin(ang) * d, t: -(Math.random() * 0.9) };
+					mesh.userData = { fx: c.x, fy: c.y, fz: c.z, sx: Math.cos(elv) * Math.cos(ang) * d, sy: Math.sin(elv) * d * 0.5, sz: Math.cos(elv) * Math.sin(ang) * d, t: -(Math.random() * 0.9) };
 					mesh.position.set(mesh.userData.sx, mesh.userData.sy, mesh.userData.sz);
 					sphereGroup.add(mesh); meshList.push(mesh);
 				}
@@ -1294,20 +1479,117 @@
 			window.addEventListener('mouseup', function () { isDragging = false; dragStart3 = null; });
 			window.addEventListener('touchend', function () { isDragging = false; dragStart3 = null; });
 
+			var lastThreeT = performance.now();
 			function threeLoop() {
 				if (!threeRunning) return;
 				requestAnimationFrame(threeLoop);
-				for (var i = 0; i < meshList.length; i++) { var u = meshList[i].userData; if (u.t < 1) u.t = Math.min(1, u.t + 0.016); if (u.t <= 0) continue; var e = 1 - Math.pow(1 - Math.max(0, u.t), 3); meshList[i].position.x = u.sx + (u.fx - u.sx) * e; meshList[i].position.y = u.sy + (u.fy - u.sy) * e; meshList[i].position.z = u.sz + (u.fz - u.sz) * e; }
-				if (!isDragging) { velY += (0.003 - velY) * 0.03; velX += (0 - velX) * 0.05; }
-				sphereGroup.rotation.y += velY;
-				sphereGroup.rotation.x = Math.max(-0.5, Math.min(0.5, sphereGroup.rotation.x + velX));
-				if (threeStars) threeStars.rotation.y -= 0.0004;
+				var now3 = performance.now();
+				var dt3 = Math.min(3, (now3 - lastThreeT) / 16.6667);
+				lastThreeT = now3;
+				if (threeShattering) {
+					// Pieces fly outward from the sphere and fade — skip the normal
+					// assemble interpolation below, which would otherwise snap every
+					// tile straight back to its sphere position each frame.
+					for (var si = 0; si < meshList.length; si++) {
+						var mm = meshList[si], sv = mm.userData.shatterVel;
+						if (!sv) continue;
+						mm.position.x += sv.x * dt3; mm.position.y += sv.y * dt3; mm.position.z += sv.z * dt3;
+						var sp = mm.userData.spin;
+						mm.rotation.x += sp.x * dt3; mm.rotation.y += sp.y * dt3; mm.rotation.z += sp.z * dt3;
+					}
+					// Fade once per unique material, not once per mesh — many facets share
+					// the same 8 image materials, so decrementing per-mesh was subtracting
+					// the same material's opacity a dozen times a frame and made the whole
+					// shatter vanish almost instantly instead of fading over ~0.75s.
+					for (var mi = 0; mi < matList.length; mi++) { matList[mi].opacity = Math.max(0, matList[mi].opacity - 0.022 * dt3); }
+				} else {
+					for (var i = 0; i < meshList.length; i++) { var u = meshList[i].userData; if (u.t < 1) u.t = Math.min(1, u.t + 0.016 * dt3); if (u.t <= 0) continue; var e = 1 - Math.pow(1 - Math.max(0, u.t), 3); meshList[i].position.x = u.sx + (u.fx - u.sx) * e; meshList[i].position.y = u.sy + (u.fy - u.sy) * e; meshList[i].position.z = u.sz + (u.fz - u.sz) * e; }
+				}
+				// While actively dragging, rotation is driven 1:1 by the move handlers below —
+				// applying velY/velX here too used to double up on top of that every single
+				// frame, making the ball overshoot and keep spinning past wherever the finger
+				// actually was. velY/velX are only for momentum coast + idle auto-spin once
+				// the finger lifts.
+				if (!isDragging) {
+					velY += (0.003 - velY) * Math.min(1, 0.03 * dt3); velX += (0.0014 - velX) * Math.min(1, 0.03 * dt3);
+					sphereGroup.rotation.y += velY * dt3;
+					sphereGroup.rotation.x += velX * dt3;
+				}
+				if (threeStars) threeStars.rotation.y -= 0.0004 * dt3;
 				threeRenderer.render(threeScene, threeCamera);
 			}
 			threeLoop();
 		}
 
-		function stopSphere() { threeRunning = false; document.getElementById('c3d').classList.remove('active'); }
+		function stopSphere() { threeRunning = false; threeShattering = false; document.getElementById('c3d').classList.remove('active'); }
+
+		// Explode the sphere into its tiles before handing off to the flying-photos phase.
+		function shatterSphere(onDone) {
+			if (!threeRunning || !sphereGroup || !sphereGroup.children.length || threeShattering) { stopSphere(); if (onDone) onDone(); return; }
+			threeShattering = true;
+			var kids = sphereGroup.children;
+			for (var i = 0; i < kids.length; i++) {
+				var m = kids[i];
+				var dir = new THREE.Vector3(m.position.x, m.position.y, m.position.z);
+				if (dir.lengthSq() < 1e-6) dir.set(Math.random() - .5, Math.random() - .5, Math.random() - .5);
+				dir.normalize();
+				m.userData.shatterVel = dir.multiplyScalar(0.09 + Math.random() * 0.16);
+				m.userData.spin = { x: (Math.random() - .5) * .14, y: (Math.random() - .5) * .14, z: (Math.random() - .5) * .14 };
+				if (m.material) { m.material.transparent = true; m.material.depthWrite = false; m.material.opacity = 1; }
+			}
+			setTimeout(function () { stopSphere(); if (onDone) onDone(); }, 800);
+		}
+
+		// ====== BALLOONS (extra flair alongside the flying photos) ======
+		// Each balloon shape is drawn once onto its own small sprite canvas and just
+		// blitted with drawImage every frame — same reused-sprite trick as the glow and
+		// sphere textures, so adding more decoration here costs almost nothing per frame.
+		var BALLOON_PALETTE = [['#ff4f87', '#ffb3cf'], ['#ffc83d', '#ffe9a8'], ['#a855f7', '#dcc2fb'], ['#ff6b6b', '#ffc2c2'], ['#36d1c4', '#aef2ea']];
+		function makeBalloonSprite(c1, c2) {
+			var w = 90, h = 150;
+			var c = document.createElement('canvas'); c.width = w; c.height = h;
+			var bx = c.getContext('2d');
+			bx.strokeStyle = 'rgba(255,255,255,.5)'; bx.lineWidth = 1.4;
+			bx.beginPath(); bx.moveTo(w / 2, 92); bx.bezierCurveTo(w / 2 - 8, 115, w / 2 + 8, 130, w / 2, 148); bx.stroke();
+			bx.fillStyle = c1;
+			bx.beginPath(); bx.moveTo(w / 2 - 5, 86); bx.lineTo(w / 2 + 5, 86); bx.lineTo(w / 2, 97); bx.closePath(); bx.fill();
+			var g = bx.createRadialGradient(w * 0.38, h * 0.26, 4, w * 0.5, h * 0.4, w * 0.58);
+			g.addColorStop(0, c2); g.addColorStop(1, c1);
+			bx.fillStyle = g;
+			bx.beginPath(); bx.ellipse(w / 2, h * 0.4, w * 0.42, h * 0.32, 0, 0, Math.PI * 2); bx.fill();
+			bx.fillStyle = 'rgba(255,255,255,.55)';
+			bx.beginPath(); bx.ellipse(w * 0.36, h * 0.25, w * 0.1, h * 0.06, -0.4, 0, Math.PI * 2); bx.fill();
+			return c;
+		}
+		var balloonSprites = BALLOON_PALETTE.map(function (cols) { return makeBalloonSprite(cols[0], cols[1]); });
+		var balloons = [], balloonPhase = false;
+		function startBalloons() {
+			balloonPhase = true; balloons = [];
+			for (var i = 0; i < 10; i++) {
+				var scale = 0.55 + Math.random() * 0.5;
+				balloons.push({
+					img: balloonSprites[i % balloonSprites.length],
+					baseX: Math.random() * W, y: H + 150 + Math.random() * H * 0.8,
+					w: 90 * scale, h: 150 * scale,
+					vy: -(Math.random() * 1.1 + 0.9),
+					swayPhase: Math.random() * Math.PI * 2, swaySpeed: 0.012 + Math.random() * 0.01, swayAmp: 16 + Math.random() * 14
+				});
+			}
+		}
+		function updateBalloons(dt) {
+			if (!balloonPhase) return;
+			for (var i = 0; i < balloons.length; i++) {
+				var b = balloons[i];
+				b.y += b.vy * dt;
+				b.swayPhase += b.swaySpeed * dt;
+				if (b.y + b.h < -60) { b.y = H + b.h + Math.random() * 200; b.baseX = Math.random() * W; }
+				ctx.save();
+				ctx.translate(b.baseX + Math.sin(b.swayPhase) * b.swayAmp, b.y);
+				ctx.rotate(Math.sin(b.swayPhase) * 0.09);
+				ctx.drawImage(b.img, -b.w / 2, -b.h / 2, b.w, b.h);
+				ctx.restore();
+			}
+		}
 
 		var flyingPhotos = [], flyPhase = false;
 		function startFlying() {
@@ -1316,11 +1598,19 @@
 			flyingPhotos = [];
 			var valid = validImgs();
 			for (var i = 0; i < valid.length; i++) { var img = valid[i], w = Math.random() * 90 + 80, h = w * (img.naturalHeight / img.naturalWidth) || w * 1.3; flyingPhotos.push({ img: img, x: Math.random() * W, y: H + h + Math.random() * 300, w: w, h: h, vx: (Math.random() - .5) * 1.2, vy: -(Math.random() * 1.5 + 1.2), rot: (Math.random() - .5) * .3, rotV: (Math.random() - .5) * .005, alpha: 1, glowAnim: Math.random() * Math.PI * 2 }); }
+			if (!balloonPhase) startBalloons(); // fallback path (no sphere shatter happened before this)
 			setTimeout(function () { document.getElementById('letterIcon').classList.add('show'); }, 8000);
 		}
-		function updateFlying() { if (!flyPhase) return; for (var p of flyingPhotos) { p.x += p.vx; p.y += p.vy; p.rot += p.rotV; p.glowAnim += .06; if (p.y + p.h < -50) { p.y = H + p.h; p.x = Math.random() * W; } var glow = .5 + .5 * Math.sin(p.glowAnim); ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h / 2); ctx.rotate(p.rot); ctx.shadowBlur = 14 + 10 * glow; ctx.shadowColor = 'rgba(255,' + (80 + 60 * glow | 0) + ',160,' + (0.7 + 0.3 * glow) + ')'; ctx.strokeStyle = 'rgba(255,' + (100 + 80 * glow | 0) + ',180,' + (0.6 + 0.4 * glow) + ')'; ctx.lineWidth = 2 + glow * 2; ctx.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.drawImage(p.img, -p.w / 2, -p.h / 2, p.w, p.h); ctx.restore(); } }
+		function updateFlying(dt) { if (!flyPhase) return; for (var p of flyingPhotos) { p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.rotV * dt; p.glowAnim += .06 * dt; if (p.y + p.h < -50) { p.y = H + p.h; p.x = Math.random() * W; } var glow = .5 + .5 * Math.sin(p.glowAnim); ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h / 2); ctx.rotate(p.rot); ctx.shadowBlur = 14 + 10 * glow; ctx.shadowColor = 'rgba(255,' + (80 + 60 * glow | 0) + ',160,' + (0.7 + 0.3 * glow) + ')'; ctx.strokeStyle = 'rgba(255,' + (100 + 80 * glow | 0) + ',180,' + (0.6 + 0.4 * glow) + ')'; ctx.lineWidth = 2 + glow * 2; ctx.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.drawImage(p.img, -p.w / 2, -p.h / 2, p.w, p.h); ctx.restore(); } }
 
-		document.getElementById('btnContinue').addEventListener('click', function () { var btn = document.getElementById('btnContinue'); btn.style.opacity = '0'; btn.style.pointerEvents = 'none'; setTimeout(function () { btn.style.display = 'none'; }, 0); startFlying(); });
+		document.getElementById('btnContinue').addEventListener('click', function () {
+			var btn = document.getElementById('btnContinue');
+			btn.style.opacity = '0'; btn.style.pointerEvents = 'none';
+			setTimeout(function () { btn.style.display = 'none'; }, 0);
+			startBalloons(); // let balloons start rising right away instead of waiting for the shatter to finish
+			if (threeRunning && sphereGroup && sphereGroup.children.length) { shatterSphere(startFlying); }
+			else { startFlying(); }
+		});
 
 		var letterTyping = false;
 		document.getElementById('letterIcon').addEventListener('click', openLetter);
@@ -1328,15 +1618,21 @@
 		function openLetter() { document.getElementById('letterModal').classList.add('show'); if (!letterTyping) typeLetter(); }
 		function typeLetter() { letterTyping = true; var el = document.getElementById('letterContent'); var i = 0; el.innerHTML = '<span class="cursor"></span>'; function type() { if (i >= LETTER_TEXT.length) { letterTyping = false; return; } var ch = LETTER_TEXT[i++]; el.innerHTML = LETTER_TEXT.substring(0, i).replace(/\n/g, '<br>') + '<span class="cursor"></span>'; setTimeout(type, ch === '\n' ? 400 : ch === ' ' ? 60 : Math.random() * 55 + 25); } setTimeout(type, 600); }
 
+		var lastFrameT = performance.now();
 		function loop() {
 			requestAnimationFrame(loop);
-			ctx.fillStyle = 'rgba(0,0,0,.16)'; ctx.fillRect(0, 0, W, H);
-			drawGlow(.8 + .2 * Math.sin(Date.now() * .0008));
-			updateBg(); drawBg(); drawStars();
+			var now = performance.now();
+			// Normalize to "60fps units" so motion speed stays consistent across 60/90/120Hz screens.
+			// Capped to avoid a giant jump after the tab was backgrounded/throttled.
+			var dt = Math.min(3, (now - lastFrameT) / 16.6667);
+			lastFrameT = now;
+			ctx.fillStyle = 'rgba(0,0,0,' + (1 - Math.pow(0.84, dt)).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H);
+			drawGlow(.8 + .2 * Math.sin(now * .0008));
+			updateBg(dt); drawBg(); drawStars(dt);
 			// NEW: fireworks + flower
-			updateFireworks();
-			updateFlowerBouquet();
-			checkHold(); updateParticleText(); updateAssemble(); updateFlying();
+			updateFireworks(dt);
+			updateFlowerBouquet(dt);
+			checkHold(); updateParticleText(dt); updateAssemble(dt); updateBalloons(dt); updateFlying(dt);
 		}
 		loop();
 	</script>
