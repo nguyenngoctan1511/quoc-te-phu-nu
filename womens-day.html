@@ -689,9 +689,14 @@
 			var room = FW_MAX - fireworks.length;
 			if (count > room) count = Math.max(0, room);
 			var fricBase = isWillow ? 0.976 : 0.955;
+			// Bursts were a fixed pixel size regardless of screen width, so on a narrow
+			// phone each one ate up a much bigger share of the sky than on desktop and
+			// neighboring bursts visually ran into each other. Shrink burst radius with
+			// screen width so they keep roughly the same *relative* size everywhere.
+			var sizeScale = Math.min(1, Math.max(0.55, W / 700));
 			for (var i = 0; i < count; i++) {
 				var ang = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * (isRing ? 0.08 : 0.25);
-				var spdBase = big ? Math.random() * 5.5 + 2.5 : Math.random() * 4.5 + 2;
+				var spdBase = (big ? Math.random() * 5.5 + 2.5 : Math.random() * 4.5 + 2) * sizeScale;
 				var spd = isRing ? spdBase * 0.95 + 0.3 : (isWillow ? spdBase * 0.85 : spdBase);
 				fireworks.push({
 					x: x, y: y,
@@ -862,16 +867,22 @@
 					if (Date.now() <= endTime + 200) {
 						var isFinale = delay >= 3150;
 						var n = isFinale ? 7 : 3 + Math.floor(Math.random() * 2);
+						// On a narrow phone there isn't room for that many side-by-side bursts
+						// without them overlapping — cap how many go up in the same wave based
+						// on how much width is actually available (tested against real burst
+						// size at phone widths so they land clearly separated, not merged).
+						var maxSlots = Math.max(1, Math.round(W / 220));
+						if (n > maxSlots) n = maxSlots;
 						// Spread rockets across the full width in evenly-spaced slots (with a
 						// little jitter) instead of a random pick near center — that's what
 						// was making bursts in the same wave land right on top of each other.
-						var margin = W * 0.1, usable = W - margin * 2;
+						var margin = W * 0.12, usable = W - margin * 2;
 						for (var i = 0; i < n; i++) {
 							var slot = (i + 0.5) / n;
-							var jitter = (Math.random() - 0.5) * (usable / n) * 0.7;
+							var jitter = (Math.random() - 0.5) * (usable / n) * 0.5;
 							var xx = margin + slot * usable + jitter;
 							var type = isFinale ? 'peony' : pickBurstType();
-							(function (ii, xx2, tt) { setTimeout(function () { launchRocket(xx2, isFinale, tt); }, ii * 130 + Math.random() * 60); })(i, xx, type);
+							(function (ii, xx2, tt) { setTimeout(function () { launchRocket(xx2, isFinale, tt); }, ii * 160 + Math.random() * 80); })(i, xx, type);
 						}
 					}
 				}, delay);
