@@ -909,7 +909,7 @@
 		var bouquetImgReady = false, bouquetImgFailed = false;
 		bouquetImg.onload = function () { bouquetImgReady = true; };
 		bouquetImg.onerror = function () { bouquetImgFailed = true; };
-		bouquetImg.src = './bouquet.png';
+		bouquetImg.src = './bouquet.jpg';
 
 		// Shared 16-color quantize palette + pixel sampler, used by both the photo path
 		// and the hand-drawn fallback so the particle fly-in logic only lives once.
@@ -972,7 +972,7 @@
 			return buildFlowerBouquetDrawn();
 		}
 
-		// Hand-drawn fallback (used only if bouquet.png hasn't loaded in time / is missing).
+		// Hand-drawn fallback (used only if bouquet.jpg hasn't loaded in time / is missing).
 		// Vẽ bó hoa theo đúng emoji 💐: nghiêng ~-30°, gói giấy hình nón, hoa đa dạng
 		function buildFlowerBouquetDrawn() {
 			var fc = document.createElement('canvas');
