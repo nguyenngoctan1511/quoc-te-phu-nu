@@ -467,7 +467,7 @@
 	<div id="letterModal">
 		<div class="letterPaper">
 			<button class="letterClose" id="letterClose">✕</button>
-			<div class="letterTitle">💌 Lời Nhắn Yêu Thương</div>
+			<div class="letterTitle">💌 Lời Nhắn Gửi Em</div>
 			<div id="letterContent"><span class="cursor"></span></div>
 		</div>
 	</div>
@@ -475,14 +475,14 @@
 	<script>
 		var MP3_URL = './noi_nay_co_anh_3.mp3';
 		var PHOTOS = [
-			'./20-10/482986080_1836041327217702_838148000994299184_n.jpg',
-			'./20-10/484070375_1836041310551037_1211495794599239922_n.jpg',
-			'./20-10/484071311_1836041387217696_7756690517306256304_n.jpg',
-			'./20-10/484449639_1836041380551030_1999920715385558374_n.jpg',
-			'./20-10/608154018_2074595156695650_5132343781880219789_n.jpg',
-			'./20-10/608520648_2074595150028984_7215256171616238864_n.jpg',
-			'./20-10/611478167_2074595123362320_4458714859675407912_n.jpg',
-			'./20-10/729375290_2223000325188465_7998546068300335513_n.jpg',
+			'./20-10/anh_chinh.jpg',
+			'./20-10/anh1.jpg',
+			'./20-10/anh2.jpg',
+			'./20-10/anh3.jpg',
+			'./20-10/anh4.jpg',
+			'./20-10/anh5.jpg',
+			'./20-10/anh6.jpg',
+			'./20-10/anh7.jpg',
 		];
 		var LETTER_TEXT = 'Chúc em một ngày 20/10 thật vui vẻ và ý nghĩa nhé! 🌸💐✨\n\nCảm ơn em vì đã luôn cố gắng, luôn nỗ lực mỗi ngày và vẫn luôn giữ được sự đáng yêu, đặc biệt của riêng mình. ❤️\n\nAnh mong em sẽ luôn xinh đẹp, rạng rỡ, gặp thật nhiều may mắn và thuận lợi trên con đường phía trước. Dù có những ngày mệt mỏi hay không được như ý, cũng mong em luôn giữ được nụ cười và sự vui vẻ của mình nhé. 🎀🍀\n\nChúc em luôn mạnh khỏe, bình an và hạnh phúc. Mong rằng những điều tốt đẹp nhất sẽ luôn đến với em, không chỉ hôm nay mà cả những ngày về sau nữa. ❤️\n\n— From: anh T giấu tên! 🌷';
 
@@ -860,7 +860,7 @@
 			document.getElementById('dimOverlay').classList.add('show');
 			rockets = []; fireworks = []; flashes = [];
 			// Nhiều đợt hơn, dồn dập hơn, cuối có grand finale lớn
-			var burstTimes = [0, 150, 350, 600, 900, 1250, 1600, 2000, 2450, 2900, 3150, 3400, 3600];
+			var burstTimes = [0, 110, 250, 430, 650, 900, 1150, 1450, 1770, 2090, 2280, 2460, 2600];
 			var endTime = Date.now() + (duration || 4500);
 			burstTimes.forEach(function (delay) {
 				setTimeout(function () {
@@ -1324,7 +1324,7 @@
 			playMusic();
 			document.getElementById('phaseHold').classList.remove('active');
 			// Pháo hoa xong hẳn mới hiện bó hoa
-			startFireworks(4000, function () {
+			startFireworks(3000, function () {
 				startFlowerBouquet(function () {
 					goPhase(2);
 					startParticleText();
